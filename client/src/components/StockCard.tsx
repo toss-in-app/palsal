@@ -10,7 +10,6 @@ import { changeColor, DOWN, HIGH_INK, LOW_INK, UP, ZONE_LABEL, zoneBg, zoneInk }
 import type { Analysis } from '../lib/series';
 import { isStale, type CardEntry } from '../state/cards';
 import type { WatchItem } from '../state/watch';
-import { AdMark } from './AdMark';
 import { Icon, type IconName } from './Icon';
 import { PriceChart } from './PriceChart';
 
@@ -22,8 +21,6 @@ export interface StockCardProps {
   onRetry: (item: WatchItem) => void;
   /** 길게 누르면(그 자리 편집 모드) */
   onLongPress?: (item: WatchItem) => void;
-  /** 전면 광고 차례인 날 '자세히' 옆 AD 표시 */
-  adMark?: boolean;
   now?: number;
 }
 
@@ -51,7 +48,7 @@ function Skel({ w, h, r = 8 }: { w: number | string; h: number; r?: number }) {
 }
 
 /** 내 종목 카드(시안 v2 '카드 ㄱ': 숫자 위, 차트 아래 — 원본 카드 정보 전부) */
-export const StockCard = memo(function StockCard({ item, entry, info, onOpen, onRetry, onLongPress, adMark = false, now = Date.now() }: StockCardProps) {
+export const StockCard = memo(function StockCard({ item, entry, info, onOpen, onRetry, onLongPress, now = Date.now() }: StockCardProps) {
   const market = marketOf(item.symbol, info);
   const tz = tzOf(market);
   const unit = unitOf(item.symbol, market);
@@ -81,7 +78,7 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
 
   const rsiInk = rsi === null ? colors.grey400 : zoneInk(zone ?? (rsi < 20 ? 'vlow' : rsi <= 30 ? 'low' : rsi < 70 ? 'mid' : 'high'));
   const zoneKey = zone ?? (rsi === null ? null : rsi < 20 ? 'vlow' : rsi <= 30 ? 'low' : rsi < 70 ? 'mid' : 'high');
-  const label = `${name} ${INTERVAL_LABEL[item.interval]}${price !== null ? `, ${formatPrice(price, unit, fx)}` : ''}${rsi !== null && zoneKey ? `, RSI ${formatRsi(rsi)} ${ZONE_LABEL[zoneKey]}` : ''}, 자세히 보기${adMark ? '(광고가 나와요)' : ''}`;
+  const label = `${name} ${INTERVAL_LABEL[item.interval]}${price !== null ? `, ${formatPrice(price, unit, fx)}` : ''}${rsi !== null && zoneKey ? `, RSI ${formatRsi(rsi)} ${ZONE_LABEL[zoneKey]}` : ''}, 자세히 보기`;
 
   let signals: ReactNode = null;
   if (a) {
@@ -230,7 +227,6 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
             </Text>
           ) : null}
           <Text typography="st12" fontWeight="semibold" color={colors.grey600} style={{ display: 'inline-flex', alignItems: 'center' }}>
-            {adMark ? <AdMark /> : null}
             자세히
             <Icon name="chev" size={14} color={colors.grey500} />
           </Text>

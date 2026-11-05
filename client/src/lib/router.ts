@@ -119,11 +119,6 @@ export function atHistoryBottom(): boolean {
   return currentDepth() === 0;
 }
 
-/** 딥링크로 바로 들어온 첫 화면인지(전면 광고를 띄우지 않는 조건 — contract/events.md interstitial-stock) */
-export function enteredByDeepLink(): boolean {
-  return baseRoute.name !== 'home' && atHistoryBottom();
-}
-
 export function navigate(route: Route): void {
   const hash = routeToHash(route);
   if (window.location.hash === hash) return;

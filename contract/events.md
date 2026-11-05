@@ -26,7 +26,6 @@
 | `toast_signal` | 보는 동안 구간 진입 토스트 | `kind`(low/high/summary) |
 | `notification_prompt_view` | 알림 받기 카드·스위치가 처음 보일 때 | `where`(changes/settings) |
 | `notification_agree` | 알림 동의 결과 | `result`(agreed/declined/error/unsupported), `where` |
-| `ad_interstitial` | 전면 시도 | `result`(shown/skipped/failed) |
 | `ad_banner` | 배너 결과 | `slot`(home/market), `result`(rendered/nofill/failed) |
 | `data_error` | Supabase·정적 JSON 실패 | `endpoint`(quotes/bars/market/track/symbols/universe/content), `code` |
 
@@ -36,11 +35,10 @@
 
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
-| `interstitial-stock` | 전면 | 내 종목 카드 · 변화 배너 · 최근 바뀐 것 → 종목 자세히 | **하루 1회**(한국 날짜, `settings.ads.lastInterstitialDate`), **처음 연 날은 없음**(`firstOpenAt` 당일), 딥링크로 들어온 첫 화면·시장 탭에서 여는 자세히엔 없음. 차례인 날은 내 종목 맨 위 안내 한 줄 "오늘 처음 종목을 열 때 광고가 한 번 나와요" + 카드·배너의 '자세히' 옆 `AD` 표시(재시도 버튼 포함 — 2026-10-22 반려 사유). 미리 불러 두고 실패하면 그냥 이동 |
 | `banner-home` | 배너 | 내 종목 둘째 카드 뒤 1개(카드가 2장 미만이면 마지막 카드 뒤) | refresh 없음, 실패하면 자리 숨김 |
 | `banner-market` | 배너 | 시장 '지금 RSI 30 아래인 큰 종목' 뒤 1개 | 같음 |
 
-리워드 지면 없음(1.1 후보). 광고를 못 불러와도 기능은 막히지 않는다.
+**배너만** — 전면·리워드 지면 없음(2026-11-05 사용자 결정 "전면광고 띄우지말고 배너만 만들자"; 리워드는 1.1 후보로 남김). 광고를 못 불러와도 기능은 막히지 않는다.
 
 ## 알림 (기능성 정기 발송 1개 — 콘솔에서 만들기 전에 사용자 확인)
 
@@ -61,7 +59,7 @@
 | `intoss://palsal/market` | market | 2. 시장 RSI·공포탐욕 |
 | `intoss://palsal/settings` | settings | 3. 매일 RSI 알림 |
 | `intoss://palsal/changes` | changes | - |
-| `intoss://palsal/stock/<symbol>?i=1d` | stock (전면 없음) | - |
+| `intoss://palsal/stock/<symbol>?i=1d` | stock | - |
 
 ## 정적 파일 (GitHub Pages `toss-in-app/palsal`)
 

@@ -1,5 +1,9 @@
 # palsal 계약 CHANGELOG
 
+## v1.6 — 2026-11-05 (전면 광고 뺌 — 사용자 결정)
+- `[client]` **전면 광고 `interstitial-stock` 뺌, 배너 2개만**(`banner-home` · `banner-market`). 사용자 "전면광고 띄우지말고 배너만 만들자". 분석 이벤트 `ad_interstitial` 도 뺌(22개). `state.schema.json` settings 의 `ads.lastInterstitialDate` 뺌. 안내 한 줄·AD 표시도 없음(배너는 SDK 가 광고 표시를 그림).
+- 출시 번들 검사는 배너 라이브 ID 2개만 요구.
+
 ## v1.5 — 2026-11-05 (5단계 ⑧ 알림 동의)
 - `[client]` 설정의 '매일 RSI 알림'을 스위치 → **상태 글자가 있는 줄**로(켜기·받는 중·받지 않음·준비 중). SDK 로는 동의를 끌 수 없어서(mandalartplan 경험). `events.md` 알림 절에 동의 받는 곳·문구·템플릿 코드(.env) 규칙.
 

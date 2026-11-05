@@ -156,7 +156,6 @@
         "filter",
         "autoRefresh",
         "firstOpenAt",
-        "ads",
         "notification"
       ],
       "properties": {
@@ -176,26 +175,6 @@
         },
         "firstOpenAt": {
           "$ref": "#/$defs/epochMs"
-        },
-        "ads": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "lastInterstitialDate"
-          ],
-          "properties": {
-            "lastInterstitialDate": {
-              "oneOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "$ref": "#/$defs/date"
-                }
-              ],
-              "description": "전면 광고를 마지막으로 보여 준 한국 날짜"
-            }
-          }
         },
         "notification": {
           "type": "object",

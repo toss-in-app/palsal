@@ -5,7 +5,6 @@ import { useRef, useState } from 'react';
 import { changeView } from '../lib/changeView';
 import type { CardsState } from '../state/cards';
 import type { ChangeItem } from '../state/changes';
-import { AdMark } from './AdMark';
 import { ChangeIcon } from './ChangeIcon';
 import { Icon } from './Icon';
 
@@ -33,12 +32,10 @@ export interface ChangeBannerProps {
   cards: CardsState;
   onOpen: (c: ChangeItem) => void;
   onAll: () => void;
-  /** 전면 광고 차례인 날 카드마다 AD 표시 */
-  adMark?: boolean;
 }
 
 /** 내 종목 맨 위 '최근 바뀐 것'(시안 v2): 옆으로 넘기는 카드 최대 10장 + 모두 보기 */
-export function ChangeBanner({ items, cards, onOpen, onAll, adMark = false }: ChangeBannerProps) {
+export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps) {
   const strip = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const shown = items.slice(0, BANNER_MAX);
@@ -94,7 +91,6 @@ export function ChangeBanner({ items, cards, onOpen, onAll, adMark = false }: Ch
                   {v.title}
                 </Text>
                 <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                  {adMark ? <AdMark /> : null}
                   {v.sub}
                 </Text>
               </span>

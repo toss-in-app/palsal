@@ -4,9 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TabBar } from './components/TabBar';
 import { activeNotice, bundledContent, bundledSymbols, bundledUniverse, PRIVACY_URL, symbolIndex, TERMS_URL } from './content';
 import { createMarketSource, type MarketSource } from './data';
-import { AD_GROUPS } from './ads/config';
-import { interstitialEligible } from './ads/rules';
-import { useInterstitial } from './ads/useInterstitial';
 import { openUrl } from './lib/bridge';
 import { AGREEMENT_TOAST, notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { kstDateKey } from './lib/date';
@@ -118,36 +115,11 @@ export default function App() {
     },
     [say],
   );
-  /**
-   * 전면 광고 interstitial-stock(계약 events.md): 내 종목 카드 · 변화 배너 · 최근 바뀐 것 → 종목 자세히. 하루 1회, 처음 연 날 없음.
-   * 내 종목·최근 바뀐 것 화면에 있는 동안만 미리 불러오고, 준비된 것만 보여 줘요(없으면 광고 없이 바로 이동).
-   * 시장 탭·딥링크로 여는 자세히에는 없어요. 보여 줬을 때만 그날 날짜를 남겨요.
-   */
-  const interstitial = useInterstitial(AD_GROUPS.interstitialStock, (route.name === 'home' || route.name === 'changes') && interstitialEligible(settings, today));
-  const [adBusy, setAdBusy] = useState(false);
-  const withInterstitial = useCallback(
-    async (go: () => void) => {
-      if (interstitial.upcoming && !adBusy) {
-        setAdBusy(true);
-        try {
-          const result = await interstitial.show();
-          if (result === 'shown') updateSettings({ ads: { lastInterstitialDate: today } });
-        } finally {
-          setAdBusy(false);
-        }
-      }
-      go();
-    },
-    [interstitial, adBusy, today],
-  );
-  const openChange = useCallback(
-    (c: ChangeItem) => {
-      const [symbol, interval] = c.watchId.split('|') as [string, WatchItem['interval']];
-      void withInterstitial(() => navigate({ name: 'stock', symbol, interval }));
-    },
-    [withInterstitial],
-  );
-  const openStock = useCallback((it: WatchItem) => void withInterstitial(() => navigate({ name: 'stock', symbol: it.symbol, interval: it.interval })), [withInterstitial]);
+  const openChange = useCallback((c: ChangeItem) => {
+    const [symbol, interval] = c.watchId.split('|') as [string, WatchItem['interval']];
+    navigate({ name: 'stock', symbol, interval });
+  }, []);
+  const openStock = useCallback((it: WatchItem) => navigate({ name: 'stock', symbol: it.symbol, interval: it.interval }), []);
 
   const tab = (TABS as readonly string[]).includes(route.name) ? (route.name as TabName) : null;
   let screen;
@@ -174,7 +146,6 @@ export default function App() {
           onRemove={(it) => removeItem(it.id)}
           onReorder={reorderWatch}
           onEditingChange={setHomeEditing}
-          adUpcoming={interstitial.upcoming}
         />
       ) : (
         <main aria-busy="true" style={{ minHeight: '100vh' }} />
@@ -214,7 +185,6 @@ export default function App() {
         items={changes}
         cards={cards}
         onOpen={openChange}
-        adUpcoming={interstitial.upcoming}
         notificationCard={
           notificationReady && watch.items.length > 0 && settings.notification.lastResult !== 'agreed' && settings.notification.promptDismissedAt === null
             ? {

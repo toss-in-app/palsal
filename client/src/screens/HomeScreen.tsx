@@ -3,7 +3,6 @@ import { Button, SearchField, Text, Top } from '@toss/tds-mobile';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { AD_GROUPS } from '../ads/config';
-import { AD_MESSAGES } from '../ads/rules';
 import { AdBanner } from '../components/AdBanner';
 import { ChangeBanner } from '../components/ChangeBanner';
 import { EditList } from '../components/EditList';
@@ -52,8 +51,6 @@ export interface HomeScreenProps {
   onReorder: (ids: string[]) => void;
   /** 편집 모드 동안은 떠 있는 탭을 숨겨요 */
   onEditingChange?: (editing: boolean) => void;
-  /** 전면 광고 차례인 날(오늘 처음 종목을 열 때 광고) — 안내 한 줄과 AD 표시 */
-  adUpcoming?: boolean;
 }
 
 /** 다른 화면에 다녀와도 같은 자리로 */
@@ -111,7 +108,7 @@ function Legend() {
  * 처음엔 4장만 그리고, 끝에 닿기 전에 다음 4장을 불러와요. 다 나오면 '종목 담기'.
  */
 export function HomeScreen(props: HomeScreenProps) {
-  const { today, items, cards, filter, autoRefresh, notice, disclaimer, online, onFilter, onAdd, onOpenMarket, onOpen, onToast, changes, onOpenChange, onAllChanges, onRemove, onReorder, onEditingChange, adUpcoming = false } = props;
+  const { today, items, cards, filter, autoRefresh, notice, disclaimer, online, onFilter, onAdd, onOpenMarket, onOpen, onToast, changes, onOpenChange, onAllChanges, onRemove, onReorder, onEditingChange } = props;
   const [editing, setEditing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
@@ -300,12 +297,7 @@ export function HomeScreen(props: HomeScreenProps) {
           {notice}
         </Text>
       ) : null}
-      {adUpcoming && items.length ? (
-        <Text display="block" typography="t7" color={colors.grey700} style={{ margin: '0 24px 8px' }}>
-          {AD_MESSAGES.interstitialNotice}
-        </Text>
-      ) : null}
-      {items.length ? <ChangeBanner items={changes} cards={cards} onOpen={onOpenChange} onAll={onAllChanges} adMark={adUpcoming} /> : null}
+      {items.length ? <ChangeBanner items={changes} cards={cards} onOpen={onOpenChange} onAll={onAllChanges} /> : null}
 
       {items.length === 0 ? (
         <section aria-label="담아 둔 종목" style={{ margin: '8px 20px 0', padding: '28px 20px 20px', borderRadius: 20, background: colors.background, textAlign: 'center' }}>
@@ -343,7 +335,6 @@ export function HomeScreen(props: HomeScreenProps) {
                   onOpen={onOpen}
                   onRetry={(x) => void retryCard(x)}
                   onLongPress={startEdit}
-                  adMark={adUpcoming}
                 />
                 {/* 배너 광고 banner-home: 둘째 카드 뒤 1개(카드가 하나면 그 뒤) — 계약 events.md */}
                 {i === Math.min(1, shown.length - 1) ? <AdBanner adGroupId={AD_GROUPS.bannerHome} /> : null}
