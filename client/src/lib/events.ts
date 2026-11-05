@@ -55,9 +55,29 @@ export function stockEvents(bars: Bars, analysis: Analysis): StockEvent[] {
 
   const d = analysis.divergence;
   if (d) out.push({ kind: d.type === 'bull' ? 'div_bull' : 'div_bear', t: d.toT, fromT: d.fromT, from: d.rsiFrom, to: d.rsiTo });
-  if (analysis.fromHigh >= 0) out.push({ kind: 'high5y', t: bars.t[n - 1] });
+  const high = lastNewHigh(bars, start);
+  if (high) out.push(high);
 
   return out.sort((x, y) => y.t - x.t).slice(0, EVENTS_MAX);
+}
+
+/**
+ * 5년 최고가를 새로 쓴 가장 최근 봉. 서버의 high5y 는 마지막 갱신 때까지의 5년 종가 최댓값이라,
+ * 그 값과 같거나 넘는 봉(현재가를 반영한 마지막 봉 포함)이 곧 '새로 쓴 날'이에요. 그보다 앞선 날은 알 수 없어서 하나만.
+ */
+function lastNewHigh(bars: Bars, from: number): StockEvent | null {
+  for (let i = bars.c.length - 1; i >= Math.max(from, 0); i--) {
+    if (bars.c[i] >= bars.high5y) return { kind: 'high5y', t: bars.t[i], from: bars.c[i] > bars.high5y ? bars.high5y : undefined, to: bars.c[i] };
+  }
+  return null;
+}
+
+/** 변화 배너·최근 바뀐 것에 쓰는 종류(엇갈림은 빼요) */
+export type ChangeKind = 'rsi_low_enter' | 'rsi_high_enter' | 'ma_cross_up' | 'ma_cross_down' | 'high5y';
+
+/** sinceSec(epoch 초) 이후 봉에서 있었던 변화 — 기기 기록(palsal.changes.v1)에 합쳐요 */
+export function recentChanges(bars: Bars, analysis: Analysis, sinceSec: number): (StockEvent & { kind: ChangeKind })[] {
+  return stockEvents(bars, analysis).filter((e): e is StockEvent & { kind: ChangeKind } => e.kind !== 'div_bull' && e.kind !== 'div_bear' && e.t >= sinceSec);
 }
 
 const UNIT: Record<Interval, string> = { '1d': '일', '1wk': '주', '1mo': '개월' };

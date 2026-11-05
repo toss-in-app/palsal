@@ -2,6 +2,8 @@ import { colors } from '@toss/tds-colors';
 import { Button, Text, Top } from '@toss/tds-mobile';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
+import { ChangeBanner } from '../components/ChangeBanner';
+import { summaryText } from '../lib/changeView';
 import { Icon, type IconName } from '../components/Icon';
 import { Pill } from '../components/Pill';
 import { StockCard } from '../components/StockCard';
@@ -10,7 +12,8 @@ import { formatDateLabel } from '../lib/date';
 import { formatKstTime } from '../lib/format';
 import { HIGH_LINE, LOW_LINE } from '../lib/indicators';
 import { HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, PAGE_BG } from '../lib/palette';
-import { loadCards, refreshQuotes, retryCard, rsiOfEntry, type CardsState } from '../state/cards';
+import { cardsStore, loadCards, refreshQuotes, retryCard, rsiOfEntry, type CardsState } from '../state/cards';
+import type { ChangeItem } from '../state/changes';
 import type { Filter } from '../state/settings';
 import type { WatchItem } from '../state/watch';
 
@@ -34,11 +37,18 @@ export interface HomeScreenProps {
   onOpenMarket: () => void;
   onOpen: (item: WatchItem) => void;
   onToast: (text: string) => void;
+  /** 최근 바뀐 것(새 것부터) */
+  changes: ChangeItem[];
+  onOpenChange: (c: ChangeItem) => void;
+  onAllChanges: () => void;
 }
 
 /** 다른 화면에 다녀와도 같은 자리로 */
 let savedScroll = 0;
 let savedLimit = PAGE;
+/** 열 때 요약 토스트는 세션에 한 번 */
+let summaryShown = false;
+
 
 function HeaderButton({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
   return (
@@ -88,7 +98,7 @@ function Legend() {
  * 처음엔 4장만 그리고, 끝에 닿기 전에 다음 4장을 불러와요. 다 나오면 '종목 담기'.
  */
 export function HomeScreen(props: HomeScreenProps) {
-  const { today, items, cards, filter, autoRefresh, notice, disclaimer, online, onFilter, onAdd, onOpenMarket, onOpen, onToast } = props;
+  const { today, items, cards, filter, autoRefresh, notice, disclaimer, online, onFilter, onAdd, onOpenMarket, onOpen, onToast, changes, onOpenChange, onAllChanges } = props;
   const [limit, setLimit] = useState(savedLimit);
   const sentinel = useRef<HTMLDivElement>(null);
   const lastRefresh = useRef(Date.now());
@@ -123,7 +133,22 @@ export function HomeScreen(props: HomeScreenProps) {
   }, [limit]);
 
   useEffect(() => {
-    if (shown.length) void loadCards(shown);
+    if (!shown.length) return;
+    void loadCards(shown).then(() => {
+      if (summaryShown) return;
+      summaryShown = true;
+      // 열 때 요약 한 번(원본: 첫 로딩 동안은 하나씩 알리지 않고 마지막에 요약)
+      let low = 0;
+      let high = 0;
+      for (const it of items) {
+        const r = rsiOfEntry(cardsStore.get().entries[it.id], it.id);
+        if (r === null) continue;
+        if (r <= LOW_LINE) low += 1;
+        else if (r >= HIGH_LINE) high += 1;
+      }
+      const text = summaryText(low, high);
+      if (text) onToast(text);
+    });
     // shownKey 가 바뀔 때만(같은 목록이면 다시 부르지 않아요)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shownKey]);
@@ -191,6 +216,7 @@ export function HomeScreen(props: HomeScreenProps) {
           {notice}
         </Text>
       ) : null}
+      {items.length ? <ChangeBanner items={changes} cards={cards} onOpen={onOpenChange} onAll={onAllChanges} /> : null}
 
       {items.length === 0 ? (
         <section aria-label="담아 둔 종목" style={{ margin: '8px 20px 0', padding: '28px 20px 20px', borderRadius: 20, background: colors.background, textAlign: 'center' }}>

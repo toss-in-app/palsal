@@ -101,11 +101,6 @@ def extra_rules(kind: str, doc) -> list[str]:
             if x['id'] != f"{x['symbol']}|{x['interval']}":
                 errs.append(f"watch id 꼴이 '<symbol>|<interval>' 이 아님: {x['id']}")
         known = set(ids)
-        for key in ('palsal.signals.v1',):
-            for side in ('low', 'high'):
-                for i in doc.get(key, {}).get(side, []):
-                    if i not in known:
-                        errs.append(f'{key}.{side} 에 담지 않은 {i}')
         for c in doc.get('palsal.changes.v1', {}).get('items', []):
             if c['watchId'] not in known:
                 errs.append(f"changes 에 담지 않은 {c['watchId']}")

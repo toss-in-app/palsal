@@ -7,20 +7,30 @@ import { createMarketSource, type MarketSource } from './data';
 import { kstDateKey } from './lib/date';
 import { TABS, goBack, navigate, useRoute, type Route, type TabName } from './lib/router';
 import { rankIndex } from './lib/search';
+import { INTERVAL_LABEL } from './lib/format';
 import { AddScreen } from './screens/AddScreen';
+import { ChangesScreen } from './screens/ChangesScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { StockScreen } from './screens/StockScreen';
 import { forgetSaved, rememberSaved, setMarketSource, useCards } from './state/cards';
+import { dropChanges, loadChanges, onLiveChanges, useChanges, type ChangeItem } from './state/changes';
 import { loadSettings, updateSettings, useSettings } from './state/settings';
 import { addWatch, loadWatch, removeWatch, useWatch, watchId, type WatchItem } from './state/watch';
 
 /** 아직 만들지 않은 화면의 이름(5단계에서 실제 화면으로 바꿔요) */
-const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add'>, string> = {
-  changes: '최근 바뀐 것',
+const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add' | 'changes'>, string> = {
   market: '시장',
   settings: '설정',
 };
+
+/** 보는 동안 새로 생긴 RSI 진입 토스트 — 여러 개면 첫 종목 외 N개 */
+function liveToast(fresh: ChangeItem[]): string {
+  const [symbol, interval] = fresh[0].watchId.split('|') as [string, keyof typeof INTERVAL_LABEL];
+  const name = symbolIndex.get(symbol)?.n ?? symbol;
+  const what = fresh[0].kind === 'rsi_low_enter' ? 'RSI가 30 아래로 내려왔어요' : 'RSI가 70을 넘었어요';
+  return fresh.length === 1 ? `${name} ${INTERVAL_LABEL[interval]} ${what}` : `${name} ${INTERVAL_LABEL[interval]} 외 ${fresh.length - 1}개 종목의 RSI 구간이 바뀌었어요`;
+}
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine !== false));
@@ -44,12 +54,13 @@ export default function App() {
   const watch = useWatch();
   const settings = useSettings();
   const cards = useCards();
+  const changes = useChanges();
   const online = useOnline();
   const toast = useToast();
   const rank = useMemo(() => rankIndex(bundledUniverse), []);
 
   useEffect(() => {
-    void loadWatch();
+    void loadWatch().then(loadChanges);
     void loadSettings();
     void createMarketSource().then((s) => {
       setMarketSource(s);
@@ -58,6 +69,11 @@ export default function App() {
   }, []);
 
   const say = useCallback((text: string) => toast.openToast(text), [toast]);
+  useEffect(() => onLiveChanges((fresh) => say(liveToast(fresh))), [say]);
+  const openChange = useCallback((c: ChangeItem) => {
+    const [symbol, interval] = c.watchId.split('|') as [string, WatchItem['interval']];
+    navigate({ name: 'stock', symbol, interval });
+  }, []);
   const openStock = useCallback((it: WatchItem) => navigate({ name: 'stock', symbol: it.symbol, interval: it.interval }), []);
 
   const tab = (TABS as readonly string[]).includes(route.name) ? (route.name as TabName) : null;
@@ -79,6 +95,9 @@ export default function App() {
           onOpenMarket={() => navigate({ name: 'market' })}
           onOpen={openStock}
           onToast={say}
+          changes={changes}
+          onOpenChange={openChange}
+          onAllChanges={() => navigate({ name: 'changes' })}
         />
       ) : (
         <main aria-busy="true" style={{ minHeight: '100vh' }} />
@@ -98,6 +117,8 @@ export default function App() {
         }}
       />
     );
+  } else if (route.name === 'changes') {
+    screen = <ChangesScreen today={today} items={changes} cards={cards} onOpen={openChange} />;
   } else if (route.name === 'stock') {
     screen = (
       <StockScreen
@@ -118,6 +139,7 @@ export default function App() {
         onRemove={(id) => {
           removeWatch(id);
           forgetSaved(id);
+          dropChanges(id);
           say('내 종목에서 뺐어요');
         }}
       />

@@ -3,6 +3,7 @@ import { toBars, toQuote, type BarsRow, type MarketSource, type QuoteRow } from 
 import { marketOf, tzOf } from '../lib/format';
 import { analyze, withQuote, type Analysis, type Bars } from '../lib/series';
 import { readJson, removeItem, writeJson } from '../lib/storage';
+import { recordChanges } from './changes';
 import { createStore, useStore } from './store';
 import { watchStore, type WatchItem } from './watch';
 
@@ -116,21 +117,27 @@ function marketOfId(id: string): Market {
   return marketOf(symbol, symbolIndex.get(symbol));
 }
 
-function compute(id: string, bars: Bars | null, quote: QuoteRow | null): Analysis | null {
+function compute(id: string, bars: Bars | null, quote: QuoteRow | null): { live: Bars; analysis: Analysis | null } | null {
   if (!bars) return null;
-  return analyze(withQuote(bars, quote ? toQuote(quote) : null), marketOfId(id) === 'CRYPTO');
+  const live = withQuote(bars, quote ? toQuote(quote) : null);
+  return { live, analysis: analyze(live, marketOfId(id) === 'CRYPTO') };
 }
 
 /** 여러 카드를 한 번에 고쳐요(화면은 한 번만 다시 그려요) */
 function patchMany(list: [string, Partial<CardEntry>][]): void {
   if (!list.length) return;
+  const computed: { id: string; bars: Bars; analysis: Analysis }[] = [];
   cardsStore.update((s) => {
     const entries = { ...s.entries };
     let latestAt = s.latestAt;
     for (const [id, next] of list) {
       const prev: CardEntry = entries[id] ?? { status: 'loading', bars: null, quote: null, last: lastValues[id] ?? null, analysis: null };
       const merged = { ...prev, ...next };
-      if ('bars' in next || 'quote' in next) merged.analysis = compute(id, merged.bars, merged.quote);
+      if ('bars' in next || 'quote' in next) {
+        const r = compute(id, merged.bars, merged.quote);
+        merged.analysis = r?.analysis ?? null;
+        if (r?.analysis) computed.push({ id, bars: r.live, analysis: r.analysis });
+      }
       if (merged.analysis && 'bars' in next) {
         const q = merged.quote;
         const c = merged.bars?.c ?? [];
@@ -148,6 +155,8 @@ function patchMany(list: [string, Partial<CardEntry>][]): void {
     }
     return { entries, latestAt };
   });
+  // 계산한 카드의 최근 7일 변화를 기록에 합쳐요(담은 종목만)
+  if (computed.length) recordChanges(computed);
 }
 
 function patch(id: string, next: Partial<CardEntry>): void {

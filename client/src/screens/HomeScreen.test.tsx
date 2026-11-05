@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { bundledContent } from '../content';
 import { analyze, type Bars } from '../lib/series';
 import type { CardEntry, CardsState } from '../state/cards';
+import type { ChangeItem } from '../state/changes';
 import type { Filter } from '../state/settings';
 import type { WatchItem } from '../state/watch';
+import { summaryText } from '../lib/changeView';
 import { HomeScreen } from './HomeScreen';
 
 const item = (symbol: string): WatchItem => ({ id: `${symbol}|1d`, symbol, interval: '1d', addedAt: 0 });
@@ -22,8 +24,8 @@ function entry(b: Bars): CardEntry {
   return { status: 'ready', bars: b, quote: null, last: null, analysis: analyze(b, false) };
 }
 
-function renderHome(items: WatchItem[], cards: CardsState, filter: Filter = 'all') {
-  const h = { onFilter: vi.fn(), onAdd: vi.fn(), onOpenMarket: vi.fn(), onOpen: vi.fn(), onToast: vi.fn() };
+function renderHome(items: WatchItem[], cards: CardsState, filter: Filter = 'all', changes: ChangeItem[] = []) {
+  const h = { onFilter: vi.fn(), onAdd: vi.fn(), onOpenMarket: vi.fn(), onOpen: vi.fn(), onToast: vi.fn(), onOpenChange: vi.fn(), onAllChanges: vi.fn() };
   render(
     <TDSMobileAITProvider brandPrimaryColor="#3182F6">
       <HomeScreen
@@ -35,6 +37,7 @@ function renderHome(items: WatchItem[], cards: CardsState, filter: Filter = 'all
         notice={null}
         disclaimer={bundledContent.disclaimer}
         online
+        changes={changes}
         {...h}
       />
     </TDSMobileAITProvider>,
@@ -96,5 +99,32 @@ describe('HomeScreen', () => {
     renderHome([item('NVDA')], { entries: { 'NVDA|1d': { status: 'error', bars: null, quote: null, last: null, analysis: null } }, latestAt: null });
     expect(screen.getByText('시세를 불러오지 못했어요')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument();
+  });
+
+  it('최근 바뀐 것 배너: 제목 · 봉 · RSI 전후, 누르면 그 종목 · 모두 보기', () => {
+    const today = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10);
+    const changes: ChangeItem[] = [
+      { kind: 'rsi_high_enter', watchId: 'NVDA|1d', date: today, at: 1, from: 68.2, to: 71.4 },
+      { kind: 'ma_cross_up', watchId: '005930.KS|1d', date: today, at: 1, from: null, to: null },
+    ];
+    const h = renderHome([item('NVDA'), item('005930.KS')], { entries: {}, latestAt: null }, 'all', changes);
+    expect(screen.getByText('엔비디아 RSI가 70을 넘었어요')).toBeInTheDocument();
+    expect(screen.getByText('일봉 · RSI 68.2 → 71.4 · 오늘')).toBeInTheDocument();
+    expect(screen.getByText('삼성전자 60일선이 120일선을 위로 넘었어요')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('엔비디아 RSI가 70을 넘었어요'));
+    expect(h.onOpenChange).toHaveBeenCalledWith(changes[0]);
+    fireEvent.click(screen.getByRole('button', { name: '모두 보기' }));
+    expect(h.onAllChanges).toHaveBeenCalled();
+  });
+
+  it('바뀐 것이 없으면 배너를 숨겨요', () => {
+    renderHome([item('NVDA')], { entries: {}, latestAt: null });
+    expect(screen.queryByText('모두 보기')).not.toBeInTheDocument();
+  });
+
+  it('열 때 요약 문구', () => {
+    expect(summaryText(2, 1)).toBe('지금 RSI 30 아래 2개, 70 위 1개예요');
+    expect(summaryText(0, 1)).toBe('지금 RSI 70 위 1개예요');
+    expect(summaryText(0, 0)).toBeNull();
   });
 });

@@ -47,3 +47,22 @@ describe('stockEvents', () => {
     expect(eventTerm('rsi_low_enter')).toBe('zone-low');
   });
 });
+
+describe('recentChanges', () => {
+  it('엇갈림은 빼고 since 이후만', async () => {
+    const { recentChanges } = await import('./events');
+    const b = barsOf(upThenDown());
+    const a = analyze(b, false)!;
+    const all = stockEvents(b, a);
+    const since = all[Math.floor(all.length / 2)].t;
+    const recent = recentChanges(b, a, since);
+    expect(recent.every((e) => e.t >= since && (e.kind as string) !== 'div_bull' && (e.kind as string) !== 'div_bear')).toBe(true);
+  });
+
+  it('5년 최고가는 그 값에 닿은 가장 최근 봉', () => {
+    const closes = Array.from({ length: 200 }, (_, i) => (i === 190 ? 300 : 100 + (i % 7)));
+    const b = barsOf(closes, 300);
+    const high = stockEvents(b, analyze(b, false)!).find((e) => e.kind === 'high5y');
+    expect(high).toMatchObject({ t: b.t[190], to: 300 });
+  });
+});

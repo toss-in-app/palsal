@@ -4,45 +4,118 @@
   "title": "palsal 기기 저장 v1 (Storage 키)",
   "description": "기기 로컬 Storage 에 키마다 문자열(JSON)로 저장. 개인정보 없음 — 담은 종목·화면 설정·구간 기억·변화 기록·마지막 값만. 모양이 다르면 클라는 그 키를 빈 값으로 취급한다. watchId = '<symbol>|<interval>'.",
   "type": "object",
-  "required": ["palsal.watch.v1", "palsal.settings.v1"],
+  "required": [
+    "palsal.watch.v1",
+    "palsal.settings.v1"
+  ],
   "additionalProperties": false,
   "properties": {
-    "palsal.watch.v1": { "$ref": "#/$defs/watch" },
-    "palsal.settings.v1": { "$ref": "#/$defs/settings" },
-    "palsal.signals.v1": { "$ref": "#/$defs/signals" },
-    "palsal.changes.v1": { "$ref": "#/$defs/changes" },
-    "palsal.cache.v1": { "$ref": "#/$defs/cache" }
+    "palsal.watch.v1": {
+      "$ref": "#/$defs/watch"
+    },
+    "palsal.settings.v1": {
+      "$ref": "#/$defs/settings"
+    },
+    "palsal.changes.v1": {
+      "$ref": "#/$defs/changes"
+    },
+    "palsal.cache.v1": {
+      "$ref": "#/$defs/cache"
+    }
   },
   "patternProperties": {
-    "^palsal\\.bars\\.v1:[\\^]?[A-Z0-9.=\\-]{1,20}\\|(1d|1wk|1mo)$": { "$ref": "#/$defs/barsCache" }
+    "^palsal\\.bars\\.v1:[\\^]?[A-Z0-9.=\\-]{1,20}\\|(1d|1wk|1mo)$": {
+      "$ref": "#/$defs/barsCache"
+    }
   },
   "$defs": {
     "barsCache": {
       "description": "종목·봉 단위 하나의 봉 데이터를 그날 하루 저장(키마다 따로 — 한 키가 너무 커지지 않게). day = 서버가 봉을 다시 넣는 시각(한국 시간 — 국내 16:40 · 미국 07:10 · 코인 09:20 · 환율 01:00)이 가장 최근에 지난 날의 한국 날짜. 지금 계산한 day 와 다르면 다시 받는다. 종목을 빼면 키도 지운다",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "day", "fetchedAt", "t", "c", "l", "high5y"],
+      "required": [
+        "version",
+        "day",
+        "fetchedAt",
+        "t",
+        "c",
+        "l",
+        "high5y"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "day": { "$ref": "#/$defs/date" },
-        "fetchedAt": { "$ref": "#/$defs/epochMs" },
-        "t": { "type": "array", "maxItems": 530, "items": { "type": "integer", "minimum": 0 } },
-        "c": { "type": "array", "maxItems": 530, "items": { "type": "number", "exclusiveMinimum": 0 } },
-        "l": { "type": "array", "maxItems": 530, "items": { "type": "number", "exclusiveMinimum": 0 } },
-        "high5y": { "type": "number", "exclusiveMinimum": 0 }
+        "version": {
+          "const": 1
+        },
+        "day": {
+          "$ref": "#/$defs/date"
+        },
+        "fetchedAt": {
+          "$ref": "#/$defs/epochMs"
+        },
+        "t": {
+          "type": "array",
+          "maxItems": 530,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "c": {
+          "type": "array",
+          "maxItems": 530,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "l": {
+          "type": "array",
+          "maxItems": 530,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "high5y": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
       }
     },
-    "epochMs": { "type": "integer", "minimum": 0 },
-    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
-    "symbol": { "type": "string", "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}$" },
-    "interval": { "enum": ["1d", "1wk", "1mo"] },
-    "watchId": { "type": "string", "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}\\|(1d|1wk|1mo)$" },
+    "epochMs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "symbol": {
+      "type": "string",
+      "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}$"
+    },
+    "interval": {
+      "enum": [
+        "1d",
+        "1wk",
+        "1mo"
+      ]
+    },
+    "watchId": {
+      "type": "string",
+      "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}\\|(1d|1wk|1mo)$"
+    },
     "watch": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "items"],
+      "required": [
+        "version",
+        "items"
+      ],
       "properties": {
-        "version": { "const": 1 },
+        "version": {
+          "const": 1
+        },
         "items": {
           "description": "배열 순서 = 화면 순서(길게 눌러 끌기로 바뀜)",
           "type": "array",
@@ -50,12 +123,25 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "symbol", "interval", "addedAt"],
+            "required": [
+              "id",
+              "symbol",
+              "interval",
+              "addedAt"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/watchId" },
-              "symbol": { "$ref": "#/$defs/symbol" },
-              "interval": { "$ref": "#/$defs/interval" },
-              "addedAt": { "$ref": "#/$defs/epochMs" }
+              "id": {
+                "$ref": "#/$defs/watchId"
+              },
+              "symbol": {
+                "$ref": "#/$defs/symbol"
+              },
+              "interval": {
+                "$ref": "#/$defs/interval"
+              },
+              "addedAt": {
+                "$ref": "#/$defs/epochMs"
+              }
             }
           }
         }
@@ -64,62 +150,143 @@
     "settings": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "filter", "autoRefresh", "firstOpenAt", "ads", "notification"],
+      "required": [
+        "version",
+        "filter",
+        "autoRefresh",
+        "firstOpenAt",
+        "ads",
+        "notification"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "filter": { "enum": ["all", "low", "high"] },
-        "autoRefresh": { "type": "boolean", "description": "보고 있는 동안 5분마다 현재가 다시 읽기(서버 갱신 간격과 같음)" },
-        "firstOpenAt": { "$ref": "#/$defs/epochMs" },
+        "version": {
+          "const": 1
+        },
+        "filter": {
+          "enum": [
+            "all",
+            "low",
+            "high"
+          ]
+        },
+        "autoRefresh": {
+          "type": "boolean",
+          "description": "보고 있는 동안 5분마다 현재가 다시 읽기(서버 갱신 간격과 같음)"
+        },
+        "firstOpenAt": {
+          "$ref": "#/$defs/epochMs"
+        },
         "ads": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["lastInterstitialDate"],
-          "properties": { "lastInterstitialDate": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/date" }], "description": "전면 광고를 마지막으로 보여 준 한국 날짜" } }
+          "required": [
+            "lastInterstitialDate"
+          ],
+          "properties": {
+            "lastInterstitialDate": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/date"
+                }
+              ],
+              "description": "전면 광고를 마지막으로 보여 준 한국 날짜"
+            }
+          }
         },
         "notification": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["promptDismissedAt", "lastResult"],
+          "required": [
+            "promptDismissedAt",
+            "lastResult"
+          ],
           "properties": {
-            "promptDismissedAt": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/epochMs" }] },
-            "lastResult": { "enum": [null, "agreed", "declined", "error", "unsupported"] }
+            "promptDismissedAt": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/epochMs"
+                }
+              ]
+            },
+            "lastResult": {
+              "enum": [
+                null,
+                "agreed",
+                "declined",
+                "error",
+                "unsupported"
+              ]
+            }
           }
         }
       }
     },
-    "signals": {
-      "description": "지금 RSI 30 아래 / 70 위에 있는 watchId. 새로 들어온 순간만 토스트·변화 기록을 남기고, 빠져나오면 지운다(다시 들어오면 다시 알림)",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["version", "low", "high", "updatedAt"],
-      "properties": {
-        "version": { "const": 1 },
-        "low": { "type": "array", "maxItems": 100, "uniqueItems": true, "items": { "$ref": "#/$defs/watchId" } },
-        "high": { "type": "array", "maxItems": 100, "uniqueItems": true, "items": { "$ref": "#/$defs/watchId" } },
-        "updatedAt": { "$ref": "#/$defs/epochMs" }
-      }
-    },
     "changes": {
-      "description": "변화 배너·최근 바뀐 것. 최대 50건, 7일 지나면 지움. 같은 watchId·kind·date 는 한 번만",
+      "description": "변화 배너·최근 바뀐 것. 카드 값을 계산할 때마다 그 종목 봉에서 최근 7일 안의 일(RSI 30 아래·70 위 진입, 60/120 교차, 5년 최고가)을 다시 찾아 합친다 — 앱을 닫아 둔 동안 생긴 일도 남는다. 같은 watchId·kind·date 는 한 번만, 7일 지나면 지움, 최대 50건. 이번 세션에 이미 계산한 종목에서 새로 생긴 RSI 진입만 토스트",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "items"],
+      "required": [
+        "version",
+        "items"
+      ],
       "properties": {
-        "version": { "const": 1 },
+        "version": {
+          "const": 1
+        },
         "items": {
           "type": "array",
           "maxItems": 50,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["kind", "watchId", "date", "at", "from", "to"],
+            "required": [
+              "kind",
+              "watchId",
+              "date",
+              "at",
+              "from",
+              "to"
+            ],
             "properties": {
-              "kind": { "enum": ["rsi_low_enter", "rsi_high_enter", "ma_cross_up", "ma_cross_down", "high5y"] },
-              "watchId": { "$ref": "#/$defs/watchId" },
-              "date": { "$ref": "#/$defs/date", "description": "그 일이 일어난 봉의 날짜(거래소 현지)" },
-              "at": { "$ref": "#/$defs/epochMs", "description": "앱이 알아챈 시각" },
-              "from": { "type": ["number", "null"], "description": "RSI 진입이면 전 봉 RSI, 5년 최고가면 이전 최고가" },
-              "to": { "type": ["number", "null"] }
+              "kind": {
+                "enum": [
+                  "rsi_low_enter",
+                  "rsi_high_enter",
+                  "ma_cross_up",
+                  "ma_cross_down",
+                  "high5y"
+                ]
+              },
+              "watchId": {
+                "$ref": "#/$defs/watchId"
+              },
+              "date": {
+                "$ref": "#/$defs/date",
+                "description": "그 일이 일어난 봉의 날짜(거래소 현지)"
+              },
+              "at": {
+                "$ref": "#/$defs/epochMs",
+                "description": "앱이 알아챈 시각"
+              },
+              "from": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "RSI 진입이면 전 봉 RSI, 5년 최고가면 이전 최고가"
+              },
+              "to": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
             }
           }
         }
@@ -129,22 +296,49 @@
       "description": "첫 화면 즉시 표시용 마지막 값(차트 데이터 없음). 키 = watchId",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "items"],
+      "required": [
+        "version",
+        "items"
+      ],
       "properties": {
-        "version": { "const": 1 },
+        "version": {
+          "const": 1
+        },
         "items": {
           "type": "object",
-          "propertyNames": { "$ref": "#/$defs/watchId" },
+          "propertyNames": {
+            "$ref": "#/$defs/watchId"
+          },
           "maxProperties": 100,
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["price", "prevClose", "rsi", "fetchedAt"],
+            "required": [
+              "price",
+              "prevClose",
+              "rsi",
+              "fetchedAt"
+            ],
             "properties": {
-              "price": { "type": "number", "exclusiveMinimum": 0 },
-              "prevClose": { "type": "number", "exclusiveMinimum": 0 },
-              "rsi": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
-              "fetchedAt": { "$ref": "#/$defs/epochMs" }
+              "price": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "prevClose": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "rsi": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 100
+              },
+              "fetchedAt": {
+                "$ref": "#/$defs/epochMs"
+              }
             }
           }
         }
