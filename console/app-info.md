@@ -18,6 +18,10 @@
 상세 설명(500자 이내):
 > 담아 둔 국내·미국 주식과 코인, 환율의 RSI(14)와 이동평균을 차트 카드로 이어서 보여 줘요. 내 종목 화면 맨 위에는 RSI가 30 아래로 내려오거나 70을 넘은 종목, 60일선과 120일선이 교차한 종목, 5년 최고가를 새로 쓴 종목이 먼저 보여요. 카드를 누르면 가격 차트와 RSI 흐름, 가격과 RSI가 엇갈린 지점을 자세히 볼 수 있어요. 시장 탭에서는 한국·미국 시가총액 상위 종목의 RSI 순위와 공포탐욕지수를 보고 바로 담을 수 있어요. 알림을 켜면 매일 오전 10시에 내 종목 RSI 정리를 알려 드려요. 지난 가격으로 계산한 보조 지표를 보여 줄 뿐 투자를 권하지 않아요.
 
-## 9단계에서 더할 것
-- 주요 기능 3(순서 = 검색 노출): 1. 내 종목 RSI 감시 `intoss://palsal` · 2. 시장 RSI·공포탐욕 `intoss://palsal/market` · 3. 매일 RSI 알림 `intoss://palsal/settings`
-- 가로 썸네일 1932×828, 세로 스크린샷 636×1048 3장 이상, 이용약관·처리방침 URL(`https://toss-in-app.github.io/palsal/terms/` · `/privacy/`)
+## 9단계 (2026-11-05 Claude 초안)
+- **이용약관** `https://toss-in-app.github.io/palsal/terms/` · **개인정보처리방침** `https://toss-in-app.github.io/palsal/privacy/` — 둘 다 라이브(8단계 배포, 원문은 `static/terms/index.html` · `static/privacy/index.html`, 정리는 `console/policies/README.md`).
+- **주요 기능 3**: `console/features.md` — 1 주식 RSI 보기 `intoss://palsal` · 2 공포탐욕지수 보기 `intoss://palsal/market` · 3 RSI 알림 받기 `intoss://palsal/settings`.
+- **세로 스크린샷 636×1048 4장**(초안, 실제 시세 · 개발 화면에서 개발용 패널·모의 광고 자리만 숨김): `console/screenshots/palsal-1-home.png`(내 종목) · `-2-stock.png`(종목 자세히, 두산에너빌리티 RSI 24.6) · `-3-market.png`(시장 공포탐욕 · 30 아래 큰 종목) · `-4-add.png`(종목 담기 초성 찾기). 실기기(10단계 QR) 캡처로 바꿔도 돼요. 시세는 찍은 날(2026-11-05) 값이라 숫자가 오래되면 다시 찍기.
+- 가로 썸네일 1932×828 은 선택 — 아직 없음.
+- 상세 설명은 위 문단 그대로 써도 돼요(배너만·알림 10시·투자 권유 아님 모두 지금 앱과 같음).
+- 입력은 사용자 몫(콘솔 웹 또는 11단계 `initial_review_submit` 의 appInfo 로 앱 정보·번들 함께 — 최초 등록 전 앱은 MCP 로 앱 정보만 따로 고칠 수 없음).
