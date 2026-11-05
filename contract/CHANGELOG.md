@@ -1,5 +1,9 @@
 # palsal 계약 CHANGELOG
 
+## v1.4 — 2026-11-05 (5단계 ⑥ 시장 탭)
+- `market.schema.json` 제목·설명을 Supabase(`palsal_market.payload`)로 바로잡음(Worker 안의 흔적). 한국·미국 공포탐욕 공식은 클라 `lib/market.ts` `fearGreedScore` 와 같아야 한다고 적음 — 개발용 예시 데이터도 이 함수로 계산.
+- `content.json` glossary 에 `fear-greed`(공포탐욕지수 계산 방법) 추가 — 시장 탭 (i) 시트.
+
 ## v1.3 — 2026-11-05 (처음 연 날 예시 종목)
 - `[client]` 처음 연 날(설정·담은 종목 키가 모두 없을 때) 한 번만 **원본과 같은 예시 4종목**(QQQ · SPY · 삼성전자 · SK하이닉스, 일봉)을 담는다. 다 빼도 다시 채우지 않음(원본의 `rsi_seeded` 와 같은 뜻 — 따로 키를 두지 않고 설정 키가 처음 만들어지는 날로 판단). `state.schema.json` watch 설명.
 - 서버 추적에 예시 4종목을 늘 넣는다(`server.md`) — 새 사용자의 첫 화면이 '불러오는 중'에 걸리지 않게. `symbols.json` 에 QQQ 추가(contentVersion 2026-11-05.2).

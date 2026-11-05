@@ -35,3 +35,10 @@ export const ZONE_LABEL: Record<Zone, string> = { vlow: '아주 낮음', low: '�
 export function changeColor(diff: number): string {
   return diff > 0 ? UP : diff < 0 ? DOWN : FLAT;
 }
+
+/** 공포탐욕 점수 → 색(공포 남보라 · 중립 회색 · 탐욕 주황 — RSI 구간 색과 같은 계열) */
+export function fearGreedInk(score: number): string {
+  if (score <= 44) return LOW_INK;
+  if (score <= 55) return colors.grey600;
+  return HIGH_INK;
+}

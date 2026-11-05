@@ -1,4 +1,4 @@
-import { isBarsRow, isQuoteRow, validRows, type MarketSource } from './types';
+import { asMarketPayload, isBarsRow, isQuoteRow, validRows, type MarketSource } from './types';
 
 /*
  * Supabase 시세 표 읽기(계약 server.md '휴대폰이 읽는 법'). 휴대폰은 읽기만 하고, 쓰는 건 서버(pg_cron → palsal-fetch)예요.
@@ -9,7 +9,7 @@ const TIMEOUT_MS = 8000;
 
 export class SourceError extends Error {
   constructor(
-    readonly endpoint: 'quotes' | 'bars' | 'track',
+    readonly endpoint: 'quotes' | 'bars' | 'track' | 'market',
     readonly code: string,
   ) {
     super(`${endpoint} ${code}`);
@@ -22,7 +22,7 @@ export function inList(values: string[]): string {
 }
 
 export function supabaseSource(baseUrl: string, publishableKey: string): MarketSource {
-  async function call(endpoint: 'quotes' | 'bars' | 'track', path: string, init?: RequestInit): Promise<unknown> {
+  async function call(endpoint: 'quotes' | 'bars' | 'track' | 'market', path: string, init?: RequestInit): Promise<unknown> {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     try {
@@ -53,6 +53,10 @@ export function supabaseSource(baseUrl: string, publishableKey: string): MarketS
     async track(symbols) {
       if (!symbols.length) return;
       await call('track', 'rpc/palsal_track', { method: 'POST', body: JSON.stringify({ symbols: symbols.slice(0, 12) }) });
+    },
+    async market() {
+      const rows = await call('market', 'palsal_market?select=payload&id=eq.1');
+      return Array.isArray(rows) && rows.length ? asMarketPayload((rows[0] as { payload?: unknown }).payload) : null;
     },
   };
 }

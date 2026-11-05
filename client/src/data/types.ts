@@ -102,4 +102,60 @@ export interface MarketSource {
   bars(keys: string[]): Promise<BarsRow[]>;
   /** 서버가 아직 지켜보지 않는 종목을 '지켜봐 줘'(최대 12개) */
   track(symbols: string[]): Promise<void>;
+  /** 시장 탭(공포탐욕 3 · 시총 상위 RSI · 30 아래). 없거나 모양이 다르면 null */
+  market(): Promise<MarketPayload | null>;
+}
+
+/* ── 시장(계약 market.schema.json = palsal_market.payload) ── */
+
+export interface FearGreed {
+  score: number;
+  label: '극단적 공포' | '공포' | '중립' | '탐욕' | '극단적 탐욕';
+  basis: string;
+  attribution?: string;
+  sourceDate?: string;
+}
+
+export interface MarketRow {
+  symbol: string;
+  rank: number;
+  rsi: number | null;
+  close: number | null;
+  changePct: number | null;
+}
+
+export interface MarketPayload {
+  schema: 1;
+  asOf: string;
+  computedAt: string;
+  stale: boolean;
+  universeVersion: string;
+  fearGreed: { kr: FearGreed; us: FearGreed; crypto: FearGreed };
+  universe: { kr: MarketRow[]; us: MarketRow[] };
+  /** universe 중 일봉 RSI ≤ 30, RSI 낮은 순 */
+  low: string[];
+}
+
+const FG_LABELS = ['극단적 공포', '공포', '중립', '탐욕', '극단적 탐욕'];
+
+function isFearGreed(v: unknown): v is FearGreed {
+  if (!isObj(v)) return false;
+  return Number.isInteger(v.score) && (v.score as number) >= 0 && (v.score as number) <= 100 && FG_LABELS.includes(v.label as string) && typeof v.basis === 'string';
+}
+
+function isRow(v: unknown): v is MarketRow {
+  if (!isObj(v)) return false;
+  const opt = (x: unknown) => x === null || num(x);
+  return typeof v.symbol === 'string' && SYMBOL_RE.test(v.symbol) && Number.isInteger(v.rank) && opt(v.rsi) && (v.close === null || pos(v.close)) && opt(v.changePct);
+}
+
+/** 모양이 맞으면 그대로, 아니면 null(화면은 '시장 정보를 불러오지 못했어요') */
+export function asMarketPayload(v: unknown): MarketPayload | null {
+  if (!isObj(v) || v.schema !== 1 || !time(v.asOf) || !time(v.computedAt) || typeof v.stale !== 'boolean' || typeof v.universeVersion !== 'string') return null;
+  const fg = v.fearGreed;
+  const uni = v.universe;
+  if (!isObj(fg) || !isFearGreed(fg.kr) || !isFearGreed(fg.us) || !isFearGreed(fg.crypto)) return null;
+  if (!isObj(uni) || !Array.isArray(uni.kr) || !Array.isArray(uni.us) || !uni.kr.every(isRow) || !uni.us.every(isRow)) return null;
+  if (!Array.isArray(v.low) || !v.low.every((s) => typeof s === 'string' && SYMBOL_RE.test(s))) return null;
+  return v as unknown as MarketPayload;
 }

@@ -1,7 +1,9 @@
 import { exchangeDay, MAX_BARS, type ExchangeTz, type Interval } from '../lib/series';
 import { marketOf, tzOf } from '../lib/format';
-import { symbolIndex } from '../content';
-import type { BarsRow, MarketSource, MarketState, QuoteRow } from './types';
+import { bundledUniverse, symbolIndex } from '../content';
+import { lastRsi } from '../lib/indicators';
+import { fearGreedLabel, fearGreedScore } from '../lib/market';
+import type { BarsRow, MarketPayload, MarketRow, MarketSource, MarketState, QuoteRow } from './types';
 
 /*
  * 개발용 예시 시세 — 실제 시세가 아니에요. 서버(8단계) 전 `npm run dev` 에서만 쓰고, 출시 번들에는 들어가지 않아요
@@ -187,6 +189,41 @@ function makeQuote(symbol: string, now: number): QuoteRow {
   };
 }
 
+/** 시장 탭 — 서버 market 작업처럼 시총 상위 목록의 일봉 RSI · 공포탐욕을 예시 봉으로 계산 */
+function makeMarket(now: number): MarketPayload {
+  const row = (symbol: string, i: number): MarketRow => {
+    const rsi = lastRsi(makeBars(symbol, '1d', now).c);
+    const q = makeQuote(symbol, now);
+    return { symbol, rank: i + 1, rsi: rsi === null ? null : Math.round(rsi * 10) / 10, close: q.price, changePct: q.change_pct };
+  };
+  const kr = bundledUniverse.kr.map(row);
+  const us = bundledUniverse.us.map(row);
+  const low = [...kr, ...us]
+    .filter((r) => r.rsi !== null && r.rsi <= 30)
+    .sort((a, b) => a.rsi! - b.rsi!)
+    .map((r) => r.symbol);
+  const fg = (symbol: string, basis: string) => {
+    const score = fearGreedScore(makeBars(symbol, '1d', now).c) ?? 50;
+    return { score, label: fearGreedLabel(score), basis };
+  };
+  const day = new Date(now).toISOString().slice(0, 10);
+  const crypto = 15 + (hash(day) % 70);
+  return {
+    schema: 1,
+    asOf: new Date(Math.floor(now / 300_000) * 300_000).toISOString(),
+    computedAt: new Date(Math.floor(now / 1_800_000) * 1_800_000).toISOString(),
+    stale: false,
+    universeVersion: bundledUniverse.contentVersion,
+    fearGreed: {
+      kr: fg('^KS11', '코스피 RSI와 120일선 위치'),
+      us: fg('SPY', 'SPY RSI와 120일선 위치'),
+      crypto: { score: crypto, label: fearGreedLabel(crypto), basis: 'alternative.me 코인 공포탐욕지수', attribution: '출처 alternative.me', sourceDate: day },
+    },
+    universe: { kr, us },
+    low,
+  };
+}
+
 const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 export function fixtureSource(clock: () => number = Date.now, latencyMs = 450): MarketSource {
@@ -203,5 +240,9 @@ export function fixtureSource(clock: () => number = Date.now, latencyMs = 450): 
       });
     },
     async track() {},
+    async market() {
+      await wait(latencyMs);
+      return makeMarket(clock());
+    },
   };
 }

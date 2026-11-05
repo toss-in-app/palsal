@@ -10,17 +10,18 @@ import { rankIndex } from './lib/search';
 import { INTERVAL_LABEL } from './lib/format';
 import { AddScreen } from './screens/AddScreen';
 import { ChangesScreen } from './screens/ChangesScreen';
+import { MarketScreen } from './screens/MarketScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { StockScreen } from './screens/StockScreen';
 import { forgetSaved, rememberSaved, setMarketSource, useCards } from './state/cards';
 import { dropChanges, loadChanges, onLiveChanges, useChanges, type ChangeItem } from './state/changes';
+import { loadMarket, useMarket } from './state/market';
 import { loadSettings, updateSettings, useSettings } from './state/settings';
 import { addWatch, loadWatch, removeWatch, reorderWatch, useWatch, watchId, type WatchItem } from './state/watch';
 
 /** 아직 만들지 않은 화면의 이름(5단계에서 실제 화면으로 바꿔요) */
-const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add' | 'changes'>, string> = {
-  market: '시장',
+const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add' | 'changes' | 'market'>, string> = {
   settings: '설정',
 };
 
@@ -55,6 +56,7 @@ export default function App() {
   const settings = useSettings();
   const cards = useCards();
   const changes = useChanges();
+  const market = useMarket();
   const online = useOnline();
   const toast = useToast();
   const rank = useMemo(() => rankIndex(bundledUniverse), []);
@@ -84,6 +86,20 @@ export default function App() {
     [say],
   );
   const [homeEditing, setHomeEditing] = useState(false);
+  // 시장 탭에 들어갈 때마다(10분 넘게 지났으면) 다시 읽어요
+  useEffect(() => {
+    if (route.name === 'market' && source) void loadMarket();
+  }, [route.name, source]);
+  /** 시장·자세히에서 담기 */
+  const addOne = useCallback(
+    (symbol: string, interval: WatchItem['interval']) => {
+      if (addWatch([{ symbol, interval }])) {
+        rememberSaved(watchId(symbol, interval));
+        say('내 종목에 담았어요');
+      } else say('더 담으려면 몇 개를 빼 주세요');
+    },
+    [say],
+  );
   const openChange = useCallback((c: ChangeItem) => {
     const [symbol, interval] = c.watchId.split('|') as [string, WatchItem['interval']];
     navigate({ name: 'stock', symbol, interval });
@@ -134,6 +150,19 @@ export default function App() {
         }}
       />
     );
+  } else if (route.name === 'market') {
+    screen = (
+      <MarketScreen
+        today={today}
+        market={market}
+        universe={bundledUniverse}
+        watched={watch.items}
+        glossary={bundledContent.glossary}
+        onRetry={() => void loadMarket(true)}
+        onOpen={(symbol) => navigate({ name: 'stock', symbol, interval: '1d' })}
+        onAdd={addOne}
+      />
+    );
   } else if (route.name === 'changes') {
     screen = <ChangesScreen today={today} items={changes} cards={cards} onOpen={openChange} />;
   } else if (route.name === 'stock') {
@@ -147,12 +176,7 @@ export default function App() {
         watched={watch.items}
         glossary={bundledContent.glossary}
         disclaimer={bundledContent.disclaimer}
-        onAdd={(symbol, interval) => {
-          if (addWatch([{ symbol, interval }])) {
-            rememberSaved(watchId(symbol, interval));
-            say('내 종목에 담았어요');
-          } else say('더 담으려면 몇 개를 빼 주세요');
-        }}
+        onAdd={addOne}
         onRemove={removeItem}
       />
     );

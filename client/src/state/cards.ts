@@ -71,6 +71,11 @@ export function setMarketSource(s: MarketSource): void {
   source = s;
 }
 
+/** 지금 쓰는 시세 출처(시장 탭도 같이 써요) */
+export function currentSource(): MarketSource | null {
+  return source;
+}
+
 /** 테스트용 */
 export function resetCards(): void {
   cardsStore.set({ entries: {}, latestAt: null });

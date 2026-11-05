@@ -1,30 +1,71 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://toss-in-app.github.io/palsal/contract/market.schema.json",
-  "title": "palsal 시장 응답 v1 (Worker GET /v1/market)",
-  "description": "cron 이 만든 저장본. 시총 상위 한국·미국 각 30(순서 = universe.json 의 시총 순)의 일봉 RSI(14)와 공포탐욕 3개. label·attribution 은 화면에 그대로 쓰는 완성 문자열.",
+  "title": "palsal 시장 v1 (GET /rest/v1/palsal_market?id=eq.1 → payload)",
+  "description": "서버 market 작업(장중 30분마다)이 palsal_market.payload 에 넣는 값. 시총 상위 한국·미국 각 최대 30(순서 = universe.json 의 시총 순)의 일봉 RSI(14)와 공포탐욕 3개. 한국·미국 공포탐욕 = RSI × 0.6 + 120일선 위치 × 0.4(클라 lib/market.ts fearGreedScore 와 같은 공식). label·basis·attribution 은 화면에 그대로 쓰는 완성 문자열.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "asOf", "computedAt", "stale", "universeVersion", "fearGreed", "universe", "low"],
+  "required": [
+    "schema",
+    "asOf",
+    "computedAt",
+    "stale",
+    "universeVersion",
+    "fearGreed",
+    "universe",
+    "low"
+  ],
   "properties": {
-    "schema": { "const": 1 },
-    "asOf": { "$ref": "#/$defs/iso" },
-    "computedAt": { "$ref": "#/$defs/iso" },
-    "stale": { "type": "boolean" },
-    "universeVersion": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "schema": {
+      "const": 1
+    },
+    "asOf": {
+      "$ref": "#/$defs/iso"
+    },
+    "computedAt": {
+      "$ref": "#/$defs/iso"
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "universeVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
     "fearGreed": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kr", "us", "crypto"],
+      "required": [
+        "kr",
+        "us",
+        "crypto"
+      ],
       "properties": {
-        "kr": { "$ref": "#/$defs/fg" },
-        "us": { "$ref": "#/$defs/fg" },
+        "kr": {
+          "$ref": "#/$defs/fg"
+        },
+        "us": {
+          "$ref": "#/$defs/fg"
+        },
         "crypto": {
-          "allOf": [{ "$ref": "#/$defs/fg" }],
-          "required": ["attribution", "sourceDate"],
+          "allOf": [
+            {
+              "$ref": "#/$defs/fg"
+            }
+          ],
+          "required": [
+            "attribution",
+            "sourceDate"
+          ],
           "properties": {
-            "attribution": { "const": "출처 alternative.me" },
-            "sourceDate": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+            "attribution": {
+              "const": "출처 alternative.me"
+            },
+            "sourceDate": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            }
           }
         }
       }
@@ -32,29 +73,74 @@
     "universe": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kr", "us"],
+      "required": [
+        "kr",
+        "us"
+      ],
       "properties": {
-        "kr": { "type": "array", "minItems": 1, "maxItems": 30, "items": { "$ref": "#/$defs/row" } },
-        "us": { "type": "array", "minItems": 1, "maxItems": 30, "items": { "$ref": "#/$defs/row" } }
+        "kr": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/$defs/row"
+          }
+        },
+        "us": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/$defs/row"
+          }
+        }
       }
     },
     "low": {
       "description": "universe 중 일봉 RSI ≤ 30 인 심볼, RSI 낮은 순",
       "type": "array",
       "maxItems": 60,
-      "items": { "$ref": "#/$defs/symbol" }
+      "items": {
+        "$ref": "#/$defs/symbol"
+      }
     }
   },
   "$defs": {
-    "iso": { "type": "string", "format": "date-time" },
-    "symbol": { "type": "string", "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}$" },
+    "iso": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "symbol": {
+      "type": "string",
+      "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}$"
+    },
     "fg": {
       "type": "object",
-      "required": ["score", "label", "basis"],
+      "required": [
+        "score",
+        "label",
+        "basis"
+      ],
       "properties": {
-        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
-        "label": { "enum": ["극단적 공포", "공포", "중립", "탐욕", "극단적 탐욕"] },
-        "basis": { "type": "string", "maxLength": 40, "description": "계산 근거 한 줄(예: 코스피 RSI와 120일선 위치)" },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "label": {
+          "enum": [
+            "극단적 공포",
+            "공포",
+            "중립",
+            "탐욕",
+            "극단적 탐욕"
+          ]
+        },
+        "basis": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "계산 근거 한 줄(예: 코스피 RSI와 120일선 위치)"
+        },
         "attribution": true,
         "sourceDate": true
       },
@@ -63,13 +149,43 @@
     "row": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["symbol", "rank", "rsi", "close", "changePct"],
+      "required": [
+        "symbol",
+        "rank",
+        "rsi",
+        "close",
+        "changePct"
+      ],
       "properties": {
-        "symbol": { "$ref": "#/$defs/symbol" },
-        "rank": { "type": "integer", "minimum": 1, "maximum": 30 },
-        "rsi": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
-        "close": { "type": ["number", "null"], "exclusiveMinimum": 0 },
-        "changePct": { "type": ["number", "null"] }
+        "symbol": {
+          "$ref": "#/$defs/symbol"
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "rsi": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "close": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "changePct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
       }
     }
   }

@@ -23,6 +23,7 @@ function fakeSource(): MarketSource & { calls: { bars: string[][]; track: string
     track: async (s) => {
       calls.track.push(s);
     },
+    market: () => base.market(),
   };
 }
 
