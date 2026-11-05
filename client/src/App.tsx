@@ -1,15 +1,16 @@
 import { useToast } from '@toss/tds-mobile';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TabBar } from './components/TabBar';
 import { activeNotice, bundledContent, bundledSymbols, bundledUniverse, PRIVACY_URL, symbolIndex, TERMS_URL } from './content';
 import { createMarketSource, type MarketSource } from './data';
+import { logEvent } from './lib/analytics';
 import { openUrl } from './lib/bridge';
 import { AGREEMENT_TOAST, notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { kstDateKey } from './lib/date';
 import { TABS, goBack, navigate, useRoute, type TabName } from './lib/router';
 import { rankIndex } from './lib/search';
-import { INTERVAL_LABEL } from './lib/format';
+import { INTERVAL_LABEL, marketOf } from './lib/format';
 import { AddScreen } from './screens/AddScreen';
 import { ChangesScreen } from './screens/ChangesScreen';
 import { MarketScreen } from './screens/MarketScreen';
@@ -20,7 +21,7 @@ import { forgetSaved, rememberSaved, setMarketSource, useCards } from './state/c
 import { dropChanges, loadChanges, onLiveChanges, useChanges, type ChangeItem } from './state/changes';
 import { loadMarket, useMarket } from './state/market';
 import { loadSettings, updateSettings, useSettings } from './state/settings';
-import { addWatch, loadWatch, removeWatch, reorderWatch, useWatch, watchId, type WatchItem } from './state/watch';
+import { addWatch, loadWatch, removeWatch, reorderWatch, useWatch, watchId, watchStore, type WatchItem } from './state/watch';
 
 
 /** 보는 동안 새로 생긴 RSI 진입 토스트 — 여러 개면 첫 종목 외 N개 */
@@ -71,13 +72,23 @@ export default function App() {
   }, []);
 
   const say = useCallback((text: string) => toast.openToast(text), [toast]);
-  useEffect(() => onLiveChanges((fresh) => say(liveToast(fresh))), [say]);
+  useEffect(
+    () =>
+      onLiveChanges((fresh) => {
+        say(liveToast(fresh));
+        logEvent('toast_signal', { kind: fresh[0].kind === 'rsi_low_enter' ? 'low' : 'high' });
+      }),
+    [say],
+  );
+  /** 자세히를 어디서 열었는지(분석 stock_view.from). 딥링크로 바로 들어오면 link */
+  const stockFrom = useRef<'card' | 'banner' | 'changes' | 'market' | 'link'>('link');
   /** 빼기(편집 모드 · 자세히 화면): 담은 목록 · 기기 저장본 · 변화 기록에서 함께 빼요 */
   const removeItem = useCallback(
-    (id: string) => {
+    (id: string, from: 'edit' | 'stock') => {
       removeWatch(id);
       forgetSaved(id);
       dropChanges(id);
+      logEvent('watch_remove', { count: watchStore.get().items.length, from });
       const [symbol, interval] = id.split('|') as [string, WatchItem['interval']];
       say(`${symbolIndex.get(symbol)?.n ?? symbol} ${INTERVAL_LABEL[interval]}을 뺐어요`);
     },
@@ -88,7 +99,7 @@ export default function App() {
    * 매일 RSI 알림 동의(최근 바뀐 것 카드 · 설정 줄을 누른 뒤에만). 결과를 settings.notification 에 남겨요.
    * 이미 받는 중이면 끄는 길(토스 앱 알림 설정)을 알려요 — SDK 로는 끌 수 없어요.
    */
-  const askNotification = useCallback(async () => {
+  const askNotification = useCallback(async (where: 'changes' | 'settings') => {
     const prev = settings.notification;
     if (prev.lastResult === 'agreed') {
       say('알림은 토스 앱의 알림 설정에서 끌 수 있어요');
@@ -98,6 +109,7 @@ export default function App() {
     const lastResult = result === 'agreed' || result === 'alreadyAgreed' ? 'agreed' : result === 'declined' ? 'declined' : result === 'unsupported' ? 'unsupported' : 'error';
     // 거절하면 최근 바뀐 것 카드는 다시 띄우지 않아요(설정에서만)
     updateSettings({ notification: { lastResult, promptDismissedAt: result === 'declined' ? Date.now() : prev.promptDismissedAt } });
+    logEvent('notification_agree', { result: lastResult, where });
     say(AGREEMENT_TOAST[result]);
   }, [settings.notification, say]);
   const notificationReady = notificationAvailable();
@@ -110,16 +122,22 @@ export default function App() {
     (symbol: string, interval: WatchItem['interval']) => {
       if (addWatch([{ symbol, interval }])) {
         rememberSaved(watchId(symbol, interval));
+        logEvent('watch_add', { n: 1, count: watchStore.get().items.length, interval });
         say('내 종목에 담았어요');
       } else say('더 담으려면 몇 개를 빼 주세요');
     },
     [say],
   );
-  const openChange = useCallback((c: ChangeItem) => {
+  const openChange = useCallback((c: ChangeItem, from: 'banner' | 'list') => {
     const [symbol, interval] = c.watchId.split('|') as [string, WatchItem['interval']];
+    logEvent('change_open', { kind: c.kind, from });
+    stockFrom.current = from === 'banner' ? 'banner' : 'changes';
     navigate({ name: 'stock', symbol, interval });
   }, []);
-  const openStock = useCallback((it: WatchItem) => navigate({ name: 'stock', symbol: it.symbol, interval: it.interval }), []);
+  const openStock = useCallback((it: WatchItem) => {
+    stockFrom.current = 'card';
+    navigate({ name: 'stock', symbol: it.symbol, interval: it.interval });
+  }, []);
 
   const tab = (TABS as readonly string[]).includes(route.name) ? (route.name as TabName) : null;
   let screen;
@@ -135,15 +153,21 @@ export default function App() {
           notice={activeNotice(bundledContent, today)}
           disclaimer={bundledContent.disclaimer}
           online={online}
-          onFilter={(filter) => updateSettings({ filter })}
-          onAdd={() => navigate({ name: 'add' })}
+          onFilter={(filter) => {
+            updateSettings({ filter });
+            logEvent('filter_change', { filter });
+          }}
+          onAdd={(from) => {
+            logEvent('add_open', { from });
+            navigate({ name: 'add' });
+          }}
           onOpenMarket={() => navigate({ name: 'market' })}
           onOpen={openStock}
           onToast={say}
           changes={changes}
-          onOpenChange={openChange}
+          onOpenChange={(c) => openChange(c, 'banner')}
           onAllChanges={() => navigate({ name: 'changes' })}
-          onRemove={(it) => removeItem(it.id)}
+          onRemove={(it) => removeItem(it.id, 'edit')}
           onReorder={reorderWatch}
           onEditingChange={setHomeEditing}
         />
@@ -157,7 +181,11 @@ export default function App() {
         rank={rank}
         watched={watch.items}
         source={source}
-        onAdd={(entries) => addWatch(entries)}
+        onAdd={(entries) => {
+          const n = addWatch(entries);
+          if (n) logEvent('watch_add', { n, count: watchStore.get().items.length, interval: entries[0]?.interval });
+          return n;
+        }}
         onToast={say}
         onDone={(n) => {
           say(n ? `${n}개 담았어요` : '이미 담은 종목이에요');
@@ -174,8 +202,14 @@ export default function App() {
         watched={watch.items}
         glossary={bundledContent.glossary}
         onRetry={() => void loadMarket(true)}
-        onOpen={(symbol) => navigate({ name: 'stock', symbol, interval: '1d' })}
-        onAdd={addOne}
+        onOpen={(symbol) => {
+          stockFrom.current = 'market';
+          navigate({ name: 'stock', symbol, interval: '1d' });
+        }}
+        onAdd={(symbol, interval) => {
+          addOne(symbol, interval);
+          logEvent('market_add', { from: 'low', market: marketOf(symbol, symbolIndex.get(symbol)) });
+        }}
       />
     );
   } else if (route.name === 'changes') {
@@ -184,11 +218,11 @@ export default function App() {
         today={today}
         items={changes}
         cards={cards}
-        onOpen={openChange}
+        onOpen={(c) => openChange(c, 'list')}
         notificationCard={
           notificationReady && watch.items.length > 0 && settings.notification.lastResult !== 'agreed' && settings.notification.promptDismissedAt === null
             ? {
-                onAgree: () => void askNotification(),
+                onAgree: () => void askNotification('changes'),
                 onDismiss: () => updateSettings({ notification: { ...settings.notification, promptDismissedAt: Date.now() } }),
               }
             : undefined
@@ -206,8 +240,9 @@ export default function App() {
         watched={watch.items}
         glossary={bundledContent.glossary}
         disclaimer={bundledContent.disclaimer}
+        from={stockFrom.current}
         onAdd={addOne}
-        onRemove={removeItem}
+        onRemove={(id) => removeItem(id, 'stock')}
       />
     );
   } else {
@@ -218,7 +253,7 @@ export default function App() {
         onAutoRefresh={(autoRefresh) => updateSettings({ autoRefresh })}
         onOpenTerms={() => void openUrl(TERMS_URL)}
         onOpenPrivacy={() => void openUrl(PRIVACY_URL)}
-        notification={{ available: notificationReady, status: settings.notification.lastResult, onPress: () => void askNotification() }}
+        notification={{ available: notificationReady, status: settings.notification.lastResult, onPress: () => void askNotification('settings') }}
       />
     );
   }

@@ -1,7 +1,9 @@
 import { colors } from '@toss/tds-colors';
 import { Button, Text, Top } from '@toss/tds-mobile';
+import { useEffect } from 'react';
 
 import { ChangeIcon } from '../components/ChangeIcon';
+import { logEvent, logEventOnce } from '../lib/analytics';
 import { changeView } from '../lib/changeView';
 import { formatDateLabel } from '../lib/date';
 import { formatRsi } from '../lib/format';
@@ -19,6 +21,15 @@ export interface ChangesScreenProps {
 
 /** 최근 바뀐 것 전체(7일) + (조건이 맞을 때) 매일 알림 받기 카드 */
 export function ChangesScreen({ today, items, cards, onOpen, notificationCard }: ChangesScreenProps) {
+  useEffect(() => {
+    logEvent('changes_view', { count: items.length });
+    // 화면에 들어올 때 한 번
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const hasCard = !!notificationCard;
+  useEffect(() => {
+    if (hasCard) logEventOnce('notification_prompt_view', { where: 'changes' }, 'changes');
+  }, [hasCard]);
   return (
     <main style={{ paddingBottom: 40 }}>
       <Top

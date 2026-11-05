@@ -1,5 +1,8 @@
 # palsal 계약 CHANGELOG
 
+## v1.7 — 2026-11-05 (5단계 ⑩ 분석 이벤트)
+- `[client]` 분석 이벤트 22개 연결(`client/src/lib/analytics.ts`, 화면 진입 4개는 log_type screen). 알림 랜딩을 `intoss://palsal?from=push` 로 — `home_view.from` 이 push 를 셀 수 있게(콘솔 템플릿 만들 때 이 주소로).
+
 ## v1.6 — 2026-11-05 (전면 광고 뺌 — 사용자 결정)
 - `[client]` **전면 광고 `interstitial-stock` 뺌, 배너 2개만**(`banner-home` · `banner-market`). 사용자 "전면광고 띄우지말고 배너만 만들자". 분석 이벤트 `ad_interstitial` 도 뺌(22개). `state.schema.json` settings 의 `ads.lastInterstitialDate` 뺌. 안내 한 줄·AD 표시도 없음(배너는 SDK 가 광고 표시를 그림).
 - 출시 번들 검사는 배너 라이브 ID 2개만 요구.

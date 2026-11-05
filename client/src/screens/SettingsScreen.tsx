@@ -1,6 +1,8 @@
 import { colors } from '@toss/tds-colors';
 import { Border, List, ListHeader, ListRow, Switch, Text, Top } from '@toss/tds-mobile';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+
+import { logEventOnce } from '../lib/analytics';
 
 import type { ContentFile } from '../content';
 import { zoneInk, zoneBg } from '../lib/palette';
@@ -69,6 +71,9 @@ const para = { display: 'block', lineHeight: 1.6 } as const;
 /** 설정(탭 3, 흐름 문서 'settings'): (알림) · 새로고침 · 도움말 3 · 이용약관·처리방침 · 시세 출처 · 면책 · 버전 */
 export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerms, onOpenPrivacy, notification }: SettingsScreenProps) {
   const [open, setOpen] = useState<HelpKey | null>(null);
+  useEffect(() => {
+    if (notification.available) logEventOnce('notification_prompt_view', { where: 'settings' }, 'settings');
+  }, [notification.available]);
   const toggle = (k: HelpKey) => setOpen((v) => (v === k ? null : k));
 
   return (

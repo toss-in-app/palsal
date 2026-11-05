@@ -7,6 +7,7 @@ import { PriceChart } from '../components/PriceChart';
 import { RsiChart } from '../components/RsiChart';
 import { TermSheet, TermWord } from '../components/TermSheet';
 import type { ContentFile, SymbolEntry } from '../content';
+import { logEvent } from '../lib/analytics';
 import { eventTerm, eventTitle, stockEvents, type StockEvent } from '../lib/events';
 import { BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
 import { changeColor, DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
@@ -26,6 +27,8 @@ export interface StockScreenProps {
   disclaimer: string;
   onAdd: (symbol: string, interval: Interval) => void;
   onRemove: (id: string) => void;
+  /** 어디서 열었는지(분석 stock_view.from) */
+  from?: 'card' | 'banner' | 'changes' | 'market' | 'link';
 }
 
 const tabular = { fontVariantNumeric: 'tabular-nums' } as const;
@@ -52,7 +55,7 @@ function Section({ title, children }: { title: ReactNode; children: ReactNode })
 }
 
 /** 종목 자세히(시안 v1 C2): 가격·등락 → 봉 단위 → 가격 차트 → RSI 흐름 → 범례 → 이 종목 소식 → 담기/빼기 */
-export function StockScreen({ symbol, interval: initial, info, cards, watched, glossary, disclaimer, onAdd, onRemove }: StockScreenProps) {
+export function StockScreen({ symbol, interval: initial, info, cards, watched, glossary, disclaimer, onAdd, onRemove, from = 'link' }: StockScreenProps) {
   const [interval, setBarInterval] = useState<Interval>(initial);
   const [term, setTerm] = useState<string | null>(null);
   const id = watchId(symbol, interval);
@@ -61,6 +64,11 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   useEffect(() => {
     void loadCards([item]);
   }, [item]);
+  useEffect(() => {
+    logEvent('stock_view', { symbol, market: marketOf(symbol, info), interval: initial, from });
+    // 화면에 들어올 때 한 번(봉 단위를 바꾸면 interval_change)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const market = marketOf(symbol, info);
   const tz = tzOf(market);
@@ -139,7 +147,14 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
       </div>
 
       <div style={{ padding: '16px 20px 0' }}>
-        <SegmentedControl value={interval} onChange={(v) => setBarInterval(v as Interval)} aria-label="봉 단위">
+        <SegmentedControl
+          value={interval}
+          onChange={(v) => {
+            setBarInterval(v as Interval);
+            logEvent('interval_change', { interval: v });
+          }}
+          aria-label="봉 단위"
+        >
           {INTERVALS.map((i) => (
             <SegmentedControl.Item key={i} value={i}>
               {INTERVAL_LABEL[i]}

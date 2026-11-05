@@ -3,6 +3,7 @@ import { BottomSheet, Text } from '@toss/tds-mobile';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import type { ContentFile } from '../content';
+import { logEvent } from '../lib/analytics';
 
 /** 글 속의 말 — 회색 바탕이 누를 수 있다는 신호. 누르면 그 말 하나만 시트로(saju-today 와 같은 모양) */
 export function TermWord({ children, label, onClick }: { children: ReactNode; label?: string; onClick: () => void }) {
@@ -35,7 +36,9 @@ export interface TermSheetProps {
 export function TermSheet({ glossary, term, onChange }: TermSheetProps) {
   const [shown, setShown] = useState<string | null>(term);
   useEffect(() => {
-    if (term) setShown(term);
+    if (!term) return;
+    setShown(term);
+    logEvent('term_open', { term });
   }, [term]);
   const g = shown ? glossary[shown] : undefined;
   const close = () => onChange(null);

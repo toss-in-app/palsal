@@ -1,6 +1,8 @@
 import { colors } from '@toss/tds-colors';
 import { Text } from '@toss/tds-mobile';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import { logEventOnce } from '../lib/analytics';
 
 import { changeView } from '../lib/changeView';
 import type { CardsState } from '../state/cards';
@@ -39,6 +41,9 @@ export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps)
   const strip = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const shown = items.slice(0, BANNER_MAX);
+  useEffect(() => {
+    if (shown.length) logEventOnce('change_banner_view', { count: shown.length });
+  }, [shown.length]);
   if (!shown.length) return null;
 
   const onScroll = () => {

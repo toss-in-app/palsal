@@ -8,6 +8,7 @@ import type { MarketSource, QuoteRow } from '../data/types';
 import { codeLine, formatPrice, INTERVAL_LABEL, unitOf } from '../lib/format';
 import type { Interval } from '../lib/series';
 import { searchSymbols } from '../lib/search';
+import { logEvent } from '../lib/analytics';
 import { WATCH_MAX, watchId, type WatchItem } from '../state/watch';
 
 const TABS: { id: Market; label: string; hint: string }[] = [
@@ -61,6 +62,13 @@ export function AddScreen({ symbols, rank, watched, source, onAdd, onDone, onToa
       clearTimeout(timer);
     };
   }, [source, priceKey]);
+
+  // 검색 결과가 보일 때(입력이 멈춘 뒤 한 번) — 검색어 원문은 보내지 않아요(events.md)
+  const resultCount = results.length;
+  useEffect(() => {
+    const timer = setTimeout(() => logEvent('search', { tab: tab.toLowerCase(), hasQuery: query.trim().length > 0, results: resultCount }), 800);
+    return () => clearTimeout(timer);
+  }, [query, tab, resultCount]);
 
   const toggle = (s: string) => {
     setPicked((p) => {

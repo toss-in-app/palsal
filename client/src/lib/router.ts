@@ -119,6 +119,16 @@ export function atHistoryBottom(): boolean {
   return currentDepth() === 0;
 }
 
+/** 앱을 연 길(분석 home_view.from): 알림(`?from=push`) · 다른 화면 딥링크 · 그냥 열기 */
+export function launchSource(): 'direct' | 'push' | 'link' {
+  try {
+    if (/[?&]from=push(&|$)/.test(Environment.initialURL ?? '')) return 'push';
+  } catch {
+    /* 브릿지 없음 */
+  }
+  return baseRoute.name !== 'home' ? 'link' : 'direct';
+}
+
 export function navigate(route: Route): void {
   const hash = routeToHash(route);
   if (window.location.hash === hash) return;

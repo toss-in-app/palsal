@@ -6,6 +6,7 @@ import { AD_GROUPS } from '../ads/config';
 import { AdBanner } from '../components/AdBanner';
 import { ChangeBanner } from '../components/ChangeBanner';
 import { EditList } from '../components/EditList';
+import { logEvent, logEventOnce } from '../lib/analytics';
 import { summaryText } from '../lib/changeView';
 import { Icon, type IconName } from '../components/Icon';
 import { Pill } from '../components/Pill';
@@ -15,7 +16,7 @@ import { formatDateLabel } from '../lib/date';
 import { formatKstTime, marketOf } from '../lib/format';
 import { HIGH_LINE, LOW_LINE } from '../lib/indicators';
 import { HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, PAGE_BG } from '../lib/palette';
-import { overlayActive, pushOverlay } from '../lib/router';
+import { launchSource, overlayActive, pushOverlay } from '../lib/router';
 import { scoreOf } from '../lib/search';
 import { cardsStore, loadCards, refreshQuotes, retryCard, rsiOfEntry, type CardsState } from '../state/cards';
 import type { ChangeItem } from '../state/changes';
@@ -38,7 +39,8 @@ export interface HomeScreenProps {
   disclaimer: string;
   online: boolean;
   onFilter: (f: Filter) => void;
-  onAdd: () => void;
+  /** 담기 화면으로(분석 add_open.from) */
+  onAdd: (from: 'header' | 'list_end' | 'empty') => void;
   onOpenMarket: () => void;
   onOpen: (item: WatchItem) => void;
   onToast: (text: string) => void;
@@ -148,8 +150,12 @@ export function HomeScreen(props: HomeScreenProps) {
     pushOverlay('edit');
     setEditing(true);
   }, [editing]);
+  /** 이번 편집 모드에서 순서를 바꿨는지(완료할 때 watch_reorder 한 번) */
+  const reordered = useRef(false);
   const endEdit = useCallback(() => {
     setEditing(false);
+    if (reordered.current) logEvent('watch_reorder');
+    reordered.current = false;
     if (overlayActive('edit')) window.history.back();
   }, []);
   useEffect(() => {
@@ -174,8 +180,15 @@ export function HomeScreen(props: HomeScreenProps) {
   }, [limit]);
 
   useEffect(() => {
+    logEventOnce('home_view', { count: items.length, from: launchSource() });
+    // 처음 보일 때 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (!shown.length) return;
-    void loadCards(shown).then(() => {
+    void loadCards(shown).then((stats) => {
+      if (stats.n) logEvent('card_load', stats);
       if (summaryShown) return;
       summaryShown = true;
       // 열 때 요약 한 번(원본: 첫 로딩 동안은 하나씩 알리지 않고 마지막에 요약)
@@ -188,7 +201,10 @@ export function HomeScreen(props: HomeScreenProps) {
         else if (r >= HIGH_LINE) high += 1;
       }
       const text = summaryText(low, high);
-      if (text) onToast(text);
+      if (text) {
+        onToast(text);
+        logEvent('toast_signal', { kind: 'summary' });
+      }
     });
     // shownKey 가 바뀔 때만(같은 목록이면 다시 부르지 않아요)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,6 +229,7 @@ export function HomeScreen(props: HomeScreenProps) {
     async (manual: boolean) => {
       lastRefresh.current = Date.now();
       const result = await refreshQuotes(items);
+      logEvent('refresh', { trigger: manual ? 'manual' : 'auto', result });
       if (manual) onToast(result === 'error' ? '시세를 불러오지 못했어요' : '지금 시세로 바꿨어요');
     },
     [items, onToast],
@@ -249,7 +266,14 @@ export function HomeScreen(props: HomeScreenProps) {
             </div>
           }
         />
-        <EditList items={items} onRemove={onRemove} onReorder={onReorder} />
+        <EditList
+          items={items}
+          onRemove={onRemove}
+          onReorder={(ids) => {
+            reordered.current = true;
+            onReorder(ids);
+          }}
+        />
         <Text display="block" typography="t7" color={colors.grey500} style={{ margin: '12px 24px 0', lineHeight: 1.5 }}>
           같은 종목을 일봉·주봉으로 따로 담았다면 각각 따로 움직여요.
         </Text>
@@ -266,7 +290,7 @@ export function HomeScreen(props: HomeScreenProps) {
         right={
           <div style={{ display: 'flex', gap: 6, marginRight: 20 }}>
             {items.length ? <HeaderButton icon="search" label="내 종목에서 찾기" onClick={() => setSearching((v) => !v)} /> : null}
-            <HeaderButton icon="plus" label="종목 담기" onClick={onAdd} />
+            <HeaderButton icon="plus" label="종목 담기" onClick={() => onAdd('header')} />
             {items.length ? <HeaderButton icon="refresh" label={refreshLabel} onClick={() => void refresh(true)} /> : null}
           </div>
         }
@@ -308,7 +332,7 @@ export function HomeScreen(props: HomeScreenProps) {
             종목을 담으면 RSI와 차트를 여기서 이어서 볼 수 있어요
           </Text>
           <div style={{ marginTop: 18, display: 'grid', gap: 8 }}>
-            <Button display="block" size="large" onClick={onAdd}>
+            <Button display="block" size="large" onClick={() => onAdd('empty')}>
               첫 종목 담기
             </Button>
             <Button display="block" size="large" variant="weak" onClick={onOpenMarket}>
@@ -337,7 +361,7 @@ export function HomeScreen(props: HomeScreenProps) {
                   onLongPress={startEdit}
                 />
                 {/* 배너 광고 banner-home: 둘째 카드 뒤 1개(카드가 하나면 그 뒤) — 계약 events.md */}
-                {i === Math.min(1, shown.length - 1) ? <AdBanner adGroupId={AD_GROUPS.bannerHome} /> : null}
+                {i === Math.min(1, shown.length - 1) ? <AdBanner adGroupId={AD_GROUPS.bannerHome} onResult={(result) => logEvent('ad_banner', { slot: 'home', result })} /> : null}
               </Fragment>
             ))}
             {filtered.length === 0 ? (
@@ -357,7 +381,7 @@ export function HomeScreen(props: HomeScreenProps) {
                 </Text>
               </div>
             ) : filter === 'all' && !query.trim() ? (
-              <Button display="block" size="large" variant="weak" onClick={onAdd} style={{ marginTop: 6 }}>
+              <Button display="block" size="large" variant="weak" onClick={() => onAdd('list_end')} style={{ marginTop: 6 }}>
                 종목 담기
               </Button>
             ) : null}
