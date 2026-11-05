@@ -4,7 +4,7 @@ import { marketOf, tzOf } from '../lib/format';
 import { analyze, withQuote, type Analysis, type Bars } from '../lib/series';
 import { readJson, removeItem, writeJson } from '../lib/storage';
 import { createStore, useStore } from './store';
-import type { WatchItem } from './watch';
+import { watchStore, type WatchItem } from './watch';
 
 /*
  * 카드 시세(내 종목 · 자세히 화면이 함께 써요). 화면을 오가도 남도록 모듈 저장소에 둬요.
@@ -97,11 +97,16 @@ async function ensureLastValues(): Promise<void> {
   });
 }
 
+/** 담은 종목인지 — 기기에는 담은 종목의 값만 남겨요(시장·딥링크로 잠깐 본 종목은 메모리에만) */
+function isWatched(id: string): boolean {
+  return watchStore.get().items.some((it) => it.id === id);
+}
+
 function schedulePersist(): void {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
     persistTimer = null;
-    const ids = Object.keys(lastValues).slice(-100);
+    const ids = Object.keys(lastValues).filter(isWatched).slice(-100);
     void writeJson(CACHE_KEY, { version: 1, items: Object.fromEntries(ids.map((id) => [id, lastValues[id]])) });
   }, 800);
 }
@@ -173,6 +178,7 @@ async function readBarsCache(item: WatchItem, now: number): Promise<Bars | null>
 }
 
 function writeBarsCache(row: BarsRow, now: number): void {
+  if (!isWatched(row.key)) return;
   const value: BarsCacheValue = { version: 1, day: barsDay(marketOfId(row.key), now), fetchedAt: now, t: row.t, c: row.c, l: row.l, high5y: row.high5y };
   void writeJson(BARS_KEY_PREFIX + row.key, value);
 }
@@ -281,16 +287,30 @@ export function isStale(quote: QuoteRow | null, now = Date.now()): boolean {
   return now - Date.parse(quote.fetched_at) > STALE_MS;
 }
 
-/** 빼낸 종목의 봉 저장본 지우기 */
-export function forgetCard(id: string): void {
-  cardsStore.update((s) => {
-    const entries = { ...s.entries };
-    delete entries[id];
-    return { ...s, entries };
-  });
+/** 빼낸 종목의 기기 저장본(봉 · 마지막 값) 지우기. 지금 화면의 값은 그대로 둬요 */
+export function forgetSaved(id: string): void {
   delete lastValues[id];
   schedulePersist();
   void removeItem(BARS_KEY_PREFIX + id);
+}
+
+/** 막 담은 종목: 이미 받아 둔 봉이 있으면 기기에도 저장해요(다음에 열 때 바로) */
+export function rememberSaved(id: string): void {
+  const e = cardsStore.get().entries[id];
+  if (!e?.bars) return;
+  const market = marketOfId(id);
+  const value: BarsCacheValue = { version: 1, day: barsDay(market), fetchedAt: Date.now(), t: e.bars.t, c: e.bars.c, l: e.bars.l, high5y: e.bars.high5y };
+  void writeJson(BARS_KEY_PREFIX + id, value);
+  if (e.analysis) {
+    lastValues[id] = { price: e.analysis.price, prevClose: e.quote?.prev_close ?? e.analysis.price, rsi: e.analysis.rsi, fetchedAt: e.quote ? Date.parse(e.quote.fetched_at) : Date.now() };
+    schedulePersist();
+  }
+}
+
+/** 현재가를 반영한 봉(자세히 화면의 '이 종목 소식'용) */
+export function barsWithQuote(entry: CardEntry | undefined): Bars | null {
+  if (!entry?.bars) return null;
+  return withQuote(entry.bars, entry.quote ? toQuote(entry.quote) : null);
 }
 
 export function useCards(): CardsState {

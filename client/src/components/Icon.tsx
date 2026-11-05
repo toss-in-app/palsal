@@ -27,6 +27,9 @@ const PATHS = {
     </>
   ),
   check: <path d="M6 12.5l4 4 8-9" />,
+  up: <path d="M12 19V5M6 11l6-6 6 6" />,
+  down: <path d="M12 5v14M6 13l6 6 6-6" />,
+  star: <path d="M12 3.8l2.5 5.1 5.6.8-4 3.9 1 5.6L12 16.6l-5.1 2.6 1-5.6-4-3.9 5.6-.8z" />,
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -4,7 +4,7 @@ import { fixtureSource } from '../data/fixture';
 import type { MarketSource, QuoteRow } from '../data/types';
 import { readJson } from '../lib/storage';
 import { barsDay, BARS_KEY_PREFIX, cardsStore, isStale, loadCards, refreshQuotes, resetCards, retryCard, setMarketSource } from './cards';
-import type { WatchItem } from './watch';
+import { watchStore, type WatchItem } from './watch';
 
 const NOW = Date.parse('2026-11-05T06:40:00Z'); // 15:40 KST
 const item = (symbol: string, interval: WatchItem['interval'] = '1d'): WatchItem => ({ id: `${symbol}|${interval}`, symbol, interval, addedAt: 0 });
@@ -41,9 +41,10 @@ describe('barsDay', () => {
 });
 
 describe('loadCards', () => {
-  it('봉·현재가를 받아 계산하고, 봉은 그날 하루 기기에 저장해요', async () => {
+  it('봉·현재가를 받아 계산하고, 담은 종목의 봉은 그날 하루 기기에 저장해요', async () => {
     const src = fakeSource();
     setMarketSource(src);
+    watchStore.set({ ready: true, items: [item('NVDA'), item('005930.KS', '1wk')] });
     await loadCards([item('NVDA'), item('005930.KS', '1wk')]);
     const e = cardsStore.get().entries['NVDA|1d'];
     expect(e.status).toBe('ready');
@@ -60,6 +61,14 @@ describe('loadCards', () => {
     expect(src.calls.bars).toEqual([['NVDA|1d', '005930.KS|1wk']]);
     expect(cardsStore.get().entries['NVDA|1d'].status).toBe('ready');
     expect(cardsStore.get().entries['NVDA|1d'].analysis?.rsi).toBe(e.analysis?.rsi);
+  });
+
+  it('담지 않은 종목(시장·딥링크로 잠깐 본 것)은 기기에 저장하지 않아요', async () => {
+    setMarketSource(fakeSource());
+    watchStore.set({ ready: true, items: [] });
+    await loadCards([item('AAPL')]);
+    expect(cardsStore.get().entries['AAPL|1d'].status).toBe('ready');
+    expect(await readJson(`${BARS_KEY_PREFIX}AAPL|1d`)).toBeNull();
   });
 
   it('서버에 없는 종목은 지켜봐 달라고 하고 기다려요', async () => {

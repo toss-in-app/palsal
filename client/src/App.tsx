@@ -5,15 +5,15 @@ import { TabBar } from './components/TabBar';
 import { activeNotice, bundledContent, bundledSymbols, bundledUniverse, symbolIndex } from './content';
 import { createMarketSource, type MarketSource } from './data';
 import { kstDateKey } from './lib/date';
-import { INTERVAL_LABEL } from './lib/format';
 import { TABS, goBack, navigate, useRoute, type Route, type TabName } from './lib/router';
 import { rankIndex } from './lib/search';
 import { AddScreen } from './screens/AddScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
-import { setMarketSource, useCards } from './state/cards';
+import { StockScreen } from './screens/StockScreen';
+import { forgetSaved, rememberSaved, setMarketSource, useCards } from './state/cards';
 import { loadSettings, updateSettings, useSettings } from './state/settings';
-import { addWatch, loadWatch, useWatch, type WatchItem } from './state/watch';
+import { addWatch, loadWatch, removeWatch, useWatch, watchId, type WatchItem } from './state/watch';
 
 /** 아직 만들지 않은 화면의 이름(5단계에서 실제 화면으로 바꿔요) */
 const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add'>, string> = {
@@ -21,11 +21,6 @@ const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add'>, string> =
   market: '시장',
   settings: '설정',
 };
-
-function placeholderTitle(route: Exclude<Route, { name: 'home' | 'add' }>): string {
-  if (route.name !== 'stock') return TITLES[route.name];
-  return `${symbolIndex.get(route.symbol)?.n ?? route.symbol} · ${INTERVAL_LABEL[route.interval]}`;
-}
 
 function useOnline(): boolean {
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine !== false));
@@ -103,8 +98,32 @@ export default function App() {
         }}
       />
     );
+  } else if (route.name === 'stock') {
+    screen = (
+      <StockScreen
+        key={route.symbol}
+        symbol={route.symbol}
+        interval={route.interval}
+        info={symbolIndex.get(route.symbol)}
+        cards={cards}
+        watched={watch.items}
+        glossary={bundledContent.glossary}
+        disclaimer={bundledContent.disclaimer}
+        onAdd={(symbol, interval) => {
+          if (addWatch([{ symbol, interval }])) {
+            rememberSaved(watchId(symbol, interval));
+            say('내 종목에 담았어요');
+          } else say('더 담으려면 몇 개를 빼 주세요');
+        }}
+        onRemove={(id) => {
+          removeWatch(id);
+          forgetSaved(id);
+          say('내 종목에서 뺐어요');
+        }}
+      />
+    );
   } else {
-    screen = <PlaceholderScreen title={placeholderTitle(route)} onBack={goBack} />;
+    screen = <PlaceholderScreen title={TITLES[route.name]} onBack={goBack} />;
   }
 
   return (
