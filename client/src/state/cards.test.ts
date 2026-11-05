@@ -110,3 +110,16 @@ describe('isStale', () => {
     expect(isStale(null, NOW)).toBe(false);
   });
 });
+
+describe('data_error', () => {
+  it('읽기 실패는 어느 표 · 어떤 코드로 남겨요', async () => {
+    const analytics = await import('../lib/analytics');
+    const spy = vi.spyOn(analytics, 'logEvent');
+    const { SourceError } = await import('../data/supabase');
+    const ok = fakeSource();
+    setMarketSource({ ...ok, bars: () => Promise.reject(new SourceError('bars', '503')) });
+    await loadCards([item('AMZN')]);
+    expect(spy).toHaveBeenCalledWith('data_error', { endpoint: 'bars', code: '503' });
+    spy.mockRestore();
+  });
+});

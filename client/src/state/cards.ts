@@ -1,5 +1,7 @@
 import { symbolIndex, type Market } from '../content';
+import { SourceError } from '../data/supabase';
 import { toBars, toQuote, type BarsRow, type MarketSource, type QuoteRow } from '../data/types';
+import { logEvent } from '../lib/analytics';
 import { marketOf, tzOf } from '../lib/format';
 import { analyze, withQuote, type Analysis, type Bars } from '../lib/series';
 import { readJson, removeItem, writeJson } from '../lib/storage';
@@ -69,6 +71,11 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function setMarketSource(s: MarketSource): void {
   source = s;
+}
+
+/** 시세 읽기 실패를 분석 이벤트 data_error 로(어느 표 · 어떤 코드 — 개인정보 없음) */
+export function reportDataError(endpoint: 'quotes' | 'bars' | 'track' | 'market', error: unknown): void {
+  logEvent('data_error', { endpoint, code: error instanceof SourceError ? error.code : 'unknown' });
 }
 
 /** 지금 쓰는 시세 출처(시장 탭도 같이 써요) */
@@ -221,8 +228,9 @@ export async function loadCards(items: WatchItem[], retry = true): Promise<{ n: 
           barsById.set(row.key, toBars(row));
           writeBarsCache(row, now);
         }
-      } catch {
+      } catch (e) {
         barsFailed = true;
+        reportDataError('bars', e);
       }
     }
 
@@ -231,8 +239,9 @@ export async function loadCards(items: WatchItem[], retry = true): Promise<{ n: 
     let quotesFailed = false;
     try {
       for (const q of await source.quotes(symbols)) quotes.set(q.symbol, q);
-    } catch {
+    } catch (e) {
       quotesFailed = true;
+      reportDataError('quotes', e);
     }
 
     const missing: string[] = [];
@@ -258,8 +267,9 @@ export async function loadCards(items: WatchItem[], retry = true): Promise<{ n: 
     if (missing.length) {
       try {
         await source.track([...new Set(missing)]);
-      } catch {
-        /* 지켜봐 달라는 요청이 실패해도 한 번 더 읽어 봐요 */
+      } catch (e) {
+        // 지켜봐 달라는 요청이 실패해도 한 번 더 읽어 봐요
+        reportDataError('track', e);
       }
       setTimeout(() => {
         const again = todo.filter((it) => cardsStore.get().entries[it.id]?.status === 'pending');
@@ -289,7 +299,8 @@ export async function refreshQuotes(items: WatchItem[]): Promise<'ok' | 'stale' 
     const quotes = new Map((await source.quotes(symbols)).map((q) => [q.symbol, q] as const));
     patchMany(ready.flatMap((it): [string, Partial<CardEntry>][] => (quotes.has(it.symbol) ? [[it.id, { quote: quotes.get(it.symbol)! }]] : [])));
     return quotes.size < symbols.length ? 'stale' : 'ok';
-  } catch {
+  } catch (e) {
+    reportDataError('quotes', e);
     return 'error';
   }
 }

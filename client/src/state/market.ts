@@ -1,5 +1,5 @@
 import type { MarketPayload } from '../data/types';
-import { currentSource } from './cards';
+import { currentSource, reportDataError } from './cards';
 import { createStore, useStore } from './store';
 
 /*
@@ -26,7 +26,8 @@ export async function loadMarket(force = false, now = Date.now()): Promise<void>
   try {
     const data = await source.market();
     marketStore.set(data ? { status: 'ready', data, fetchedAt: now } : { ...marketStore.get(), status: s.data ? 'ready' : 'error' });
-  } catch {
+  } catch (e) {
+    reportDataError('market', e);
     marketStore.set({ ...marketStore.get(), status: s.data ? 'ready' : 'error' });
   }
 }
