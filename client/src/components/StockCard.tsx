@@ -2,6 +2,8 @@ import { colors } from '@toss/tds-colors';
 import { Button, Text } from '@toss/tds-mobile';
 import { memo, type KeyboardEvent, type ReactNode } from 'react';
 
+import { useLongPress } from '../lib/useLongPress';
+
 import type { SymbolEntry } from '../content';
 import { avatarText, BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
 import { changeColor, DOWN, HIGH_INK, LOW_INK, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
@@ -17,6 +19,8 @@ export interface StockCardProps {
   info: SymbolEntry | undefined;
   onOpen: (item: WatchItem) => void;
   onRetry: (item: WatchItem) => void;
+  /** 길게 누르면(그 자리 편집 모드) */
+  onLongPress?: (item: WatchItem) => void;
   now?: number;
 }
 
@@ -44,7 +48,7 @@ function Skel({ w, h, r = 8 }: { w: number | string; h: number; r?: number }) {
 }
 
 /** 내 종목 카드(시안 v2 '카드 ㄱ': 숫자 위, 차트 아래 — 원본 카드 정보 전부) */
-export const StockCard = memo(function StockCard({ item, entry, info, onOpen, onRetry, now = Date.now() }: StockCardProps) {
+export const StockCard = memo(function StockCard({ item, entry, info, onOpen, onRetry, onLongPress, now = Date.now() }: StockCardProps) {
   const market = marketOf(item.symbol, info);
   const tz = tzOf(market);
   const unit = unitOf(item.symbol, market);
@@ -64,6 +68,7 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
   const at = quote ? Date.parse(quote.fetched_at) : (last?.fetchedAt ?? null);
 
   const open = () => onOpen(item);
+  const press = useLongPress(() => onLongPress?.(item), open);
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -105,7 +110,7 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
   }
 
   return (
-    <article role="link" tabIndex={0} aria-label={label} onClick={open} onKeyDown={onKey} style={card}>
+    <article role="link" tabIndex={0} aria-label={label} {...press} onKeyDown={onKey} style={{ ...card, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span
           aria-hidden="true"

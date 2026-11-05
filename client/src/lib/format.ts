@@ -28,9 +28,15 @@ const EXCHANGE: Record<string, string> = {
 };
 
 /** 카드 둘째 줄: '035720 · 코스피' · 'NVDA · 나스닥' · 'BTC · 코인' · 'USD/KRW · 환율' */
+/** 거래소·분류 이름: '코스피' · '나스닥' · '코인' · '환율' */
+export function placeOf(symbol: string, entry?: SymbolEntry): string {
+  if (symbol.startsWith('^')) return '지수';
+  return entry?.x ? (EXCHANGE[entry.x] ?? entry.x) : { KR: '국내', US: '미국', CRYPTO: '코인', FX: '환율' }[marketOf(symbol, entry)];
+}
+
 export function codeLine(symbol: string, entry?: SymbolEntry): string {
   const market = marketOf(symbol, entry);
-  const place = entry?.x ? (EXCHANGE[entry.x] ?? entry.x) : { KR: '국내', US: '미국', CRYPTO: '코인', FX: '환율' }[market];
+  const place = placeOf(symbol, entry);
   if (symbol.startsWith('^')) return `${symbol.slice(1)} · 지수`;
   if (market === 'KR') return `${symbol.replace(/\.(KS|KQ)$/, '')} · ${place}`;
   if (market === 'CRYPTO') return `${symbol.replace(/-USD$/, '')} · ${place}`;

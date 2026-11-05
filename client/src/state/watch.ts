@@ -91,6 +91,18 @@ export function addWatch(entries: { symbol: string; interval: Interval }[], now 
   return added.length;
 }
 
+/** 편집 모드에서 끌어서 바꾼 순서로 저장해요(목록에 없는 id 는 무시, 빠진 것은 뒤에 그대로) */
+export function reorderWatch(ids: string[]): void {
+  const prev = watchStore.get().items;
+  const byId = new Map(prev.map((it) => [it.id, it]));
+  const head = ids.map((id) => byId.get(id)).filter((it): it is WatchItem => !!it);
+  const rest = prev.filter((it) => !ids.includes(it.id));
+  const items = [...head, ...rest];
+  if (items.every((it, i) => it === prev[i])) return;
+  watchStore.set({ ready: true, items });
+  void persist(items);
+}
+
 export function removeWatch(id: string): void {
   const items = watchStore.get().items.filter((it) => it.id !== id);
   watchStore.set({ ready: true, items });

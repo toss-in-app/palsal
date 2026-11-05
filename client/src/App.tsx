@@ -16,7 +16,7 @@ import { StockScreen } from './screens/StockScreen';
 import { forgetSaved, rememberSaved, setMarketSource, useCards } from './state/cards';
 import { dropChanges, loadChanges, onLiveChanges, useChanges, type ChangeItem } from './state/changes';
 import { loadSettings, updateSettings, useSettings } from './state/settings';
-import { addWatch, loadWatch, removeWatch, useWatch, watchId, type WatchItem } from './state/watch';
+import { addWatch, loadWatch, removeWatch, reorderWatch, useWatch, watchId, type WatchItem } from './state/watch';
 
 /** 아직 만들지 않은 화면의 이름(5단계에서 실제 화면으로 바꿔요) */
 const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add' | 'changes'>, string> = {
@@ -72,6 +72,18 @@ export default function App() {
 
   const say = useCallback((text: string) => toast.openToast(text), [toast]);
   useEffect(() => onLiveChanges((fresh) => say(liveToast(fresh))), [say]);
+  /** 빼기(편집 모드 · 자세히 화면): 담은 목록 · 기기 저장본 · 변화 기록에서 함께 빼요 */
+  const removeItem = useCallback(
+    (id: string) => {
+      removeWatch(id);
+      forgetSaved(id);
+      dropChanges(id);
+      const [symbol, interval] = id.split('|') as [string, WatchItem['interval']];
+      say(`${symbolIndex.get(symbol)?.n ?? symbol} ${INTERVAL_LABEL[interval]}을 뺐어요`);
+    },
+    [say],
+  );
+  const [homeEditing, setHomeEditing] = useState(false);
   const openChange = useCallback((c: ChangeItem) => {
     const [symbol, interval] = c.watchId.split('|') as [string, WatchItem['interval']];
     navigate({ name: 'stock', symbol, interval });
@@ -100,6 +112,9 @@ export default function App() {
           changes={changes}
           onOpenChange={openChange}
           onAllChanges={() => navigate({ name: 'changes' })}
+          onRemove={(it) => removeItem(it.id)}
+          onReorder={reorderWatch}
+          onEditingChange={setHomeEditing}
         />
       ) : (
         <main aria-busy="true" style={{ minHeight: '100vh' }} />
@@ -138,12 +153,7 @@ export default function App() {
             say('내 종목에 담았어요');
           } else say('더 담으려면 몇 개를 빼 주세요');
         }}
-        onRemove={(id) => {
-          removeWatch(id);
-          forgetSaved(id);
-          dropChanges(id);
-          say('내 종목에서 뺐어요');
-        }}
+        onRemove={removeItem}
       />
     );
   } else {
@@ -153,7 +163,7 @@ export default function App() {
   return (
     <>
       {screen}
-      {tab ? <TabBar active={tab} onSelect={(t) => navigate(t === 'home' ? { name: 'home' } : { name: t })} /> : null}
+      {tab && !(route.name === 'home' && homeEditing) ? <TabBar active={tab} onSelect={(t) => navigate(t === 'home' ? { name: 'home' } : { name: t })} /> : null}
     </>
   );
 }

@@ -132,6 +132,20 @@ export function navigate(route: Route): void {
 }
 
 /**
+ * 같은 화면 위에 덮는 상태(내 종목 편집 모드)를 히스토리 한 칸으로 쌓아요 — 토스앱 뒤로가기가 화면을 떠나지 않고 그 상태만 닫게.
+ * 주소는 그대로, replaceState 는 쓰지 않아요.
+ */
+export function pushOverlay(name: string): void {
+  window.history.pushState({ depth: currentDepth() + 1, overlay: name }, '', window.location.hash || '#/');
+}
+
+/** 지금 히스토리 칸이 그 덮는 상태인지 */
+export function overlayActive(name: string): boolean {
+  const state: unknown = window.history.state;
+  return !!state && typeof state === 'object' && (state as { overlay?: unknown }).overlay === name;
+}
+
+/**
  * 이전 화면으로. 히스토리 바닥(딥링크로 바로 들어온 화면)이면 URL 은 그대로 두고 홈을 그려요.
  * 바닥인데 해시가 있으면(개발 중 `#/market` 으로 바로 열었거나 그 화면에서 새로고침) 홈을 한 칸 쌓아요 — replaceState 는 쓰지 않아요.
  */

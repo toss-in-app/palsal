@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { readJson } from '../lib/storage';
-import { addWatch, loadWatch, parseWatch, removeWatch, WATCH_KEY, WATCH_MAX, watchStore } from './watch';
+import { addWatch, loadWatch, parseWatch, removeWatch, reorderWatch, WATCH_KEY, WATCH_MAX, watchStore } from './watch';
 
 describe('parseWatch', () => {
   it('모양이 다르면 빈 목록', () => {
@@ -65,5 +65,23 @@ describe('처음 연 날 예시 종목', () => {
   it('처음 연 날이 아니면 넣지 않아요', async () => {
     await loadWatch(false);
     expect(watchStore.get().items).toEqual([]);
+  });
+});
+
+describe('reorderWatch', () => {
+  beforeEach(() => watchStore.set({ ready: true, items: [] }));
+
+  it('끌어서 바꾼 순서로 저장해요', async () => {
+    addWatch([{ symbol: 'A', interval: '1d' }, { symbol: 'B', interval: '1d' }, { symbol: 'C', interval: '1d' }]);
+    reorderWatch(['C|1d', 'A|1d', 'B|1d']);
+    expect(watchStore.get().items.map((i) => i.id)).toEqual(['C|1d', 'A|1d', 'B|1d']);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(parseWatch(await readJson(WATCH_KEY)).map((i) => i.id)).toEqual(['C|1d', 'A|1d', 'B|1d']);
+  });
+
+  it('모르는 id 는 무시하고 빠진 것은 뒤에 그대로', () => {
+    addWatch([{ symbol: 'A', interval: '1d' }, { symbol: 'B', interval: '1d' }, { symbol: 'C', interval: '1d' }]);
+    reorderWatch(['B|1d', 'Z|1d']);
+    expect(watchStore.get().items.map((i) => i.id)).toEqual(['B|1d', 'A|1d', 'C|1d']);
   });
 });

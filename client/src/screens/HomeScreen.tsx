@@ -1,17 +1,20 @@
 import { colors } from '@toss/tds-colors';
-import { Button, Text, Top } from '@toss/tds-mobile';
+import { Button, SearchField, Text, Top } from '@toss/tds-mobile';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { ChangeBanner } from '../components/ChangeBanner';
+import { EditList } from '../components/EditList';
 import { summaryText } from '../lib/changeView';
 import { Icon, type IconName } from '../components/Icon';
 import { Pill } from '../components/Pill';
 import { StockCard } from '../components/StockCard';
 import { symbolIndex } from '../content';
 import { formatDateLabel } from '../lib/date';
-import { formatKstTime } from '../lib/format';
+import { formatKstTime, marketOf } from '../lib/format';
 import { HIGH_LINE, LOW_LINE } from '../lib/indicators';
 import { HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, PAGE_BG } from '../lib/palette';
+import { overlayActive, pushOverlay } from '../lib/router';
+import { scoreOf } from '../lib/search';
 import { cardsStore, loadCards, refreshQuotes, retryCard, rsiOfEntry, type CardsState } from '../state/cards';
 import type { ChangeItem } from '../state/changes';
 import type { Filter } from '../state/settings';
@@ -41,6 +44,11 @@ export interface HomeScreenProps {
   changes: ChangeItem[];
   onOpenChange: (c: ChangeItem) => void;
   onAllChanges: () => void;
+  /** 편집 모드에서 빼기 · 순서 바꾸기 */
+  onRemove: (item: WatchItem) => void;
+  onReorder: (ids: string[]) => void;
+  /** 편집 모드 동안은 떠 있는 탭을 숨겨요 */
+  onEditingChange?: (editing: boolean) => void;
 }
 
 /** 다른 화면에 다녀와도 같은 자리로 */
@@ -98,7 +106,10 @@ function Legend() {
  * 처음엔 4장만 그리고, 끝에 닿기 전에 다음 4장을 불러와요. 다 나오면 '종목 담기'.
  */
 export function HomeScreen(props: HomeScreenProps) {
-  const { today, items, cards, filter, autoRefresh, notice, disclaimer, online, onFilter, onAdd, onOpenMarket, onOpen, onToast, changes, onOpenChange, onAllChanges } = props;
+  const { today, items, cards, filter, autoRefresh, notice, disclaimer, online, onFilter, onAdd, onOpenMarket, onOpen, onToast, changes, onOpenChange, onAllChanges, onRemove, onReorder, onEditingChange } = props;
+  const [editing, setEditing] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(savedLimit);
   const sentinel = useRef<HTMLDivElement>(null);
   const lastRefresh = useRef(Date.now());
@@ -117,12 +128,40 @@ export function HomeScreen(props: HomeScreenProps) {
   }, [items, rsiOf]);
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return items;
+    const q = query.trim();
     return items.filter((it) => {
+      if (q) {
+        const entry = symbolIndex.get(it.symbol) ?? { s: it.symbol, n: it.symbol, m: marketOf(it.symbol) };
+        if (scoreOf(entry, q) === null) return false;
+      }
+      if (filter === 'all') return true;
       const r = rsiOf(it);
       return r !== null && (filter === 'low' ? r <= LOW_LINE : r >= HIGH_LINE);
     });
-  }, [items, filter, rsiOf]);
+  }, [items, filter, rsiOf, query]);
+
+  // 그 자리 편집 모드: 길게 누르면 들어가고, '완료'·뒤로가기로 나와요(히스토리 한 칸)
+  const startEdit = useCallback(() => {
+    if (editing) return;
+    pushOverlay('edit');
+    setEditing(true);
+  }, [editing]);
+  const endEdit = useCallback(() => {
+    setEditing(false);
+    if (overlayActive('edit')) window.history.back();
+  }, []);
+  useEffect(() => {
+    onEditingChange?.(editing);
+    if (!editing) return;
+    const onPop = () => {
+      if (!overlayActive('edit')) setEditing(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [editing, onEditingChange]);
+  useEffect(() => {
+    if (editing && items.length === 0) endEdit();
+  }, [editing, items.length, endEdit]);
 
   const shown = filtered.slice(0, limit);
   const more = filtered.length > shown.length;
@@ -193,6 +232,29 @@ export function HomeScreen(props: HomeScreenProps) {
   const nextIn = Math.max(0, AUTO_REFRESH_MS - (Date.now() - lastRefresh.current));
   const refreshLabel = autoRefresh ? `지금 새로고침 · 다음 자동 새로고침까지 ${Math.ceil(nextIn / 60_000)}분` : '지금 새로고침';
 
+  if (editing) {
+    return (
+      <main style={{ minHeight: '100vh', background: PAGE_BG, paddingBottom: 40 }}>
+        <Top
+          style={{ background: PAGE_BG }}
+          title={<Top.TitleParagraph size={22}>내 종목</Top.TitleParagraph>}
+          subtitleBottom={<Top.SubtitleParagraph size={13}>끌어서 순서를 바꾸고, 빨간 버튼으로 빼요</Top.SubtitleParagraph>}
+          right={
+            <div style={{ marginRight: 20 }}>
+              <Button size="medium" onClick={endEdit}>
+                완료
+              </Button>
+            </div>
+          }
+        />
+        <EditList items={items} onRemove={onRemove} onReorder={onReorder} />
+        <Text display="block" typography="t7" color={colors.grey500} style={{ margin: '12px 24px 0', lineHeight: 1.5 }}>
+          같은 종목을 일봉·주봉으로 따로 담았다면 각각 따로 움직여요.
+        </Text>
+      </main>
+    );
+  }
+
   return (
     <main style={{ minHeight: '100vh', background: PAGE_BG, paddingBottom: 120 }}>
       <Top
@@ -201,11 +263,28 @@ export function HomeScreen(props: HomeScreenProps) {
         title={<Top.TitleParagraph size={22}>{`내 종목 ${items.length}`}</Top.TitleParagraph>}
         right={
           <div style={{ display: 'flex', gap: 6, marginRight: 20 }}>
+            {items.length ? <HeaderButton icon="search" label="내 종목에서 찾기" onClick={() => setSearching((v) => !v)} /> : null}
             <HeaderButton icon="plus" label="종목 담기" onClick={onAdd} />
             {items.length ? <HeaderButton icon="refresh" label={refreshLabel} onClick={() => void refresh(true)} /> : null}
           </div>
         }
       />
+      {searching && items.length ? (
+        <div style={{ marginBottom: 4 }}>
+          <SearchField
+            autoFocus
+            placeholder="내 종목에서 찾기 · 이름, 티커, 초성"
+            aria-label="내 종목에서 찾기"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onDeleteClick={() => {
+              setQuery('');
+              setSearching(false);
+            }}
+            enterKeyHint="search"
+          />
+        </div>
+      ) : null}
       {!online ? (
         <Text display="block" typography="t7" color={colors.grey700} style={{ margin: '0 24px 8px' }}>
           인터넷 연결이 없어 마지막으로 받은 값을 보여 줘요
@@ -246,11 +325,23 @@ export function HomeScreen(props: HomeScreenProps) {
 
           <section aria-label="내 종목 차트" style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '12px 16px 0' }}>
             {shown.map((it) => (
-              <StockCard key={it.id} item={it} entry={cards.entries[it.id]} info={symbolIndex.get(it.symbol)} onOpen={onOpen} onRetry={(x) => void retryCard(x)} />
+              <StockCard
+                key={it.id}
+                item={it}
+                entry={cards.entries[it.id]}
+                info={symbolIndex.get(it.symbol)}
+                onOpen={onOpen}
+                onRetry={(x) => void retryCard(x)}
+                onLongPress={startEdit}
+              />
             ))}
             {filtered.length === 0 ? (
               <Text display="block" typography="t6" color={colors.grey600} style={{ padding: '28px 8px', textAlign: 'center' }}>
-                {filter === 'low' ? '지금은 RSI 30 아래인 종목이 없어요' : '지금은 RSI 70 위인 종목이 없어요'}
+                {query.trim()
+                  ? '내 종목에서 찾는 종목이 없어요'
+                  : filter === 'low'
+                    ? '지금은 RSI 30 아래인 종목이 없어요'
+                    : '지금은 RSI 70 위인 종목이 없어요'}
               </Text>
             ) : null}
             {more ? (
@@ -260,7 +351,7 @@ export function HomeScreen(props: HomeScreenProps) {
                   다음 종목을 불러오고 있어요
                 </Text>
               </div>
-            ) : filter === 'all' ? (
+            ) : filter === 'all' && !query.trim() ? (
               <Button display="block" size="large" variant="weak" onClick={onAdd} style={{ marginTop: 6 }}>
                 종목 담기
               </Button>

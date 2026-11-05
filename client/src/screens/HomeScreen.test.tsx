@@ -1,5 +1,5 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { bundledContent } from '../content';
@@ -25,7 +25,7 @@ function entry(b: Bars): CardEntry {
 }
 
 function renderHome(items: WatchItem[], cards: CardsState, filter: Filter = 'all', changes: ChangeItem[] = []) {
-  const h = { onFilter: vi.fn(), onAdd: vi.fn(), onOpenMarket: vi.fn(), onOpen: vi.fn(), onToast: vi.fn(), onOpenChange: vi.fn(), onAllChanges: vi.fn() };
+  const h = { onFilter: vi.fn(), onAdd: vi.fn(), onOpenMarket: vi.fn(), onOpen: vi.fn(), onToast: vi.fn(), onOpenChange: vi.fn(), onAllChanges: vi.fn(), onRemove: vi.fn(), onReorder: vi.fn() };
   render(
     <TDSMobileAITProvider brandPrimaryColor="#3182F6">
       <HomeScreen
@@ -126,5 +126,57 @@ describe('HomeScreen', () => {
     expect(summaryText(2, 1)).toBe('지금 RSI 30 아래 2개, 70 위 1개예요');
     expect(summaryText(0, 1)).toBe('지금 RSI 70 위 1개예요');
     expect(summaryText(0, 0)).toBeNull();
+  });
+
+  it('카드를 길게 누르면 그 자리 편집 모드: 빼기 · 완료', () => {
+    vi.useFakeTimers();
+    try {
+      const items = [item('035720.KS'), item('005930.KS')];
+      const h = renderHome(items, { entries: { '035720.KS|1d': entry(bars(-1)), '005930.KS|1d': entry(bars(1)) }, latestAt: null });
+      const card = screen.getByRole('link', { name: /^카카오 일봉/ });
+      fireEvent.pointerDown(card, { button: 0, clientX: 10, clientY: 10 });
+      act(() => vi.advanceTimersByTime(600));
+      expect(screen.getByText('끌어서 순서를 바꾸고, 빨간 버튼으로 빼요')).toBeInTheDocument();
+      expect(h.onOpen).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: '삼성전자 일봉 빼기' }));
+      expect(h.onRemove).toHaveBeenCalledWith(items[1]);
+      fireEvent.keyDown(screen.getByRole('button', { name: '카카오 일봉 순서 옮기기' }), { key: 'ArrowDown' });
+      expect(h.onReorder).toHaveBeenCalledWith(['005930.KS|1d', '035720.KS|1d']);
+      fireEvent.click(screen.getByRole('button', { name: '완료' }));
+      expect(screen.getByText('내 종목 2')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('짧게 누르면 자세히, 움직이면(스크롤) 편집 모드가 아니에요', () => {
+    vi.useFakeTimers();
+    try {
+      const items = [item('035720.KS')];
+      const h = renderHome(items, { entries: { '035720.KS|1d': entry(bars(-1)) }, latestAt: null });
+      const card = screen.getByRole('link', { name: /^카카오 일봉/ });
+      fireEvent.pointerDown(card, { button: 0, clientX: 10, clientY: 10 });
+      fireEvent.pointerMove(card, { clientX: 10, clientY: 60 });
+      act(() => vi.advanceTimersByTime(600));
+      expect(screen.queryByText('끌어서 순서를 바꾸고, 빨간 버튼으로 빼요')).not.toBeInTheDocument();
+      fireEvent.click(card);
+      expect(h.onOpen).toHaveBeenCalledWith(items[0]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('내 종목에서 찾기: 이름 · 초성, 없으면 한 줄, 지우면 닫혀요', () => {
+    const items = [item('035720.KS'), item('005930.KS'), item('NVDA')];
+    renderHome(items, { entries: {}, latestAt: null });
+    fireEvent.click(screen.getByRole('button', { name: '내 종목에서 찾기' }));
+    const field = screen.getByLabelText('내 종목에서 찾기', { selector: 'input' });
+    fireEvent.change(field, { target: { value: 'ㅅㅅ' } });
+    expect(screen.getByText('삼성전자')).toBeInTheDocument();
+    expect(screen.queryByText('카카오')).not.toBeInTheDocument();
+    fireEvent.change(field, { target: { value: 'nvda' } });
+    expect(screen.getByText('엔비디아')).toBeInTheDocument();
+    fireEvent.change(field, { target: { value: '없는종목' } });
+    expect(screen.getByText('내 종목에서 찾는 종목이 없어요')).toBeInTheDocument();
   });
 });
