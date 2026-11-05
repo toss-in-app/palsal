@@ -2,6 +2,7 @@
 """palsal 계약 v1 검사 — samples/*.json 을 스키마로 확인하고, 스키마 밖 규칙도 본다.
 사용: python3 -m pip install jsonschema  &&  python3 scripts/validate.py [파일...]
 인자가 없으면 samples/ 전부. 4단계에서 projects/palsal/contract/ 로 옮겨 정적 JSON·Worker 응답 검사에도 쓴다.
+같은 규칙이 ../../scripts/check-contract.mjs(npm run contract)에도 있다(2026-11-05 6단계에서 옮김) — 바꾸면 둘 다.
 """
 import json
 import sys

@@ -1,5 +1,9 @@
 # palsal 계약 CHANGELOG
 
+## v1.9 — 2026-11-05 (6단계 테스트)
+- `[server]` **값 반올림**: `palsal_quotes`·`palsal_bars` 의 가격은 넣기 전에 반올림(한국 원 정수 · 미국 달러·지수·환율 소수 4자리 · 코인 유효숫자 8자리) — 기기 봉 저장 크기를 지키려고(`server.md`).
+- `npm run contract` 가 스키마 밖 규칙까지 본다(봉 길이·순서·high5y, 키 꼴·중복, 금지 표현, 시장 목록 순서, 반올림 안 된 값) — `contract/scripts/validate.py` 와 같은 규칙을 Node 로 옮김.
+
 ## v1.8 — 2026-11-05 (5단계 ⑪ 정적 콘텐츠 원격 갱신)
 - `[client]` Storage 키 `palsal.static.v1:<symbols|universe|content>` 추가(선택) — 원격본의 그날 저장(물어본 날·ETag·본문). 번들로 바로 그리고, 하루 한 번 `If-None-Match` 로 물어 새 판이면 바꿔 끼움(byeol-today 와 같은 방식). contentVersion 이 번들보다 낮거나 minClientVersion 이 앱보다 높으면 안 씀. 실패는 data_error(endpoint symbols·universe·content).
 
