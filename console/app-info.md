@@ -1,21 +1,23 @@
-# palsal 콘솔 등록 입력값 (4단계 ①, 2026-11-05)
+# palsal 콘솔 등록 (4단계 ①) — 2026-11-05 등록 완료
 
-콘솔 웹 https://apps-in-toss.toss.im → 워크스페이스(기존) → 앱 → '+등록하기'. 등록 후 `appName` 은 바꿀 수 없어요.
+- **miniAppId 97559** · appName **`palsal`**(확정, 변경 불가) · 워크스페이스 '곤'(10169) · 비게임 · 콘솔 MCP `miniapp_create` 로 등록
+- 사용자가 '검토 요청 전 확약 5개'에 동의(2026-11-05): ① 앱인토스에서 오픈할 수 있는 서비스 ② 환전·현금화·자금세탁 우려 없음 ③ 인허가·등록·신고 마침 ④ 부정행위·위법 행위 없음 ⑤ 위반 시 책임은 파트너사, 토스 손해 보상
+- 등록 직후 검토 요청은 4103('최초 등록이 끝나기 전에는 앱 정보와 번들을 함께 제출해요')으로 멈춤 — 정상. **앱 이름 외의 앱 정보는 저장되지 않았다** → 11단계 `initial_review_submit(miniAppId=97559)` 의 appInfo 에 아래 값을 다시 담는다(`initial-review.appinfo.json`).
+- 로고 uploadId `mcp-image:10169:1793859989:cd38798c-a8ae-475c-904e-108c60edcdea:png` — **2026-11-12 만료**. 그 뒤엔 `image_upload_url` 로 `console/logo.png` 를 다시 올린다.
+- 사용 연령은 신규 앱 기본 19~99, 고객문의 이메일은 콘솔 계정 이메일로 자동(바꾸려면 콘솔 웹 '앱 정보 > 고객센터 정보').
 
-| 칸 | 넣을 값 | 근거 |
-|----|---------|------|
-| 앱 이름(국문) | **팔껄살껄** | 사용자 2026-11-05 "이름 팔껄살껄로 하자". 같은 이름 미니앱 없음(운영 목록 11-05) |
-| 앱 이름(영문, 15자 이내 명사형) | **PalSal** (6자) — 안 되면 Palsal RSI | `ref/registration-rules.md` |
-| appName | **palsal** → 거절되면 pal-sal → palkkeol-salkkeol | 플랫폼 전체 유일·변경 불가. 바뀌면 `python3 scripts/rename-app.py palsal <새 이름>` |
-| 앱 유형 | 비게임 | |
-| 카테고리 | 생활 > 재테크 (categoryId 3884 · subCategoryId 94) | `miniapp_category_list` 2026-11-05 |
-| 로고 | `console/logo.png` (600×600, 흰 바탕, T5 후회 지점) | `steps/3-design/wireframes/rsi-board-logo-v1.md` |
-| 부제(9단계) | RSI로 보는 내 종목 | 국문 이름이 기능을 말하지 않아 부제로 보완 |
-| 고객문의 이메일(9단계) | jmsmg1@me.com | 다른 앱과 같음 |
+| 칸 | 넣은 값 |
+|----|---------|
+| 앱 이름(국문) | 팔껄살껄 |
+| 앱 이름(영문) | Palsal (단어마다 첫 글자만 대문자 규칙이라 'PalSal' 은 불가, 사용자 선택) |
+| 부제(20자 이내) | RSI로 보는 내 종목 |
+| 카테고리 | 생활 > 재테크 (categoryIds [3884] · subCategoryIds [94]) |
+| 검색 키워드(10) | RSI · RSI 알림 · 주식 RSI · 코인 RSI · 보조지표 · 이동평균 · 공포탐욕지수 · 관심종목 · 주식 차트 · 시가총액 |
+| 로고 | `console/logo.png` (600×600 PNG, T5 후회 지점) |
 
-나머지(설명·키워드·스크린샷·약관 URL·주요 기능 3)는 9단계 `console/` 에 따로.
+상세 설명(500자 이내):
+> 담아 둔 국내·미국 주식과 코인, 환율의 RSI(14)와 이동평균을 차트 카드로 이어서 보여 줘요. 내 종목 화면 맨 위에는 RSI가 30 아래로 내려오거나 70을 넘은 종목, 60일선과 120일선이 교차한 종목, 5년 최고가를 새로 쓴 종목이 먼저 보여요. 카드를 누르면 가격 차트와 RSI 흐름, 가격과 RSI가 엇갈린 지점을 자세히 볼 수 있어요. 시장 탭에서는 한국·미국 시가총액 상위 종목의 RSI 순위와 공포탐욕지수를 보고 바로 담을 수 있어요. 알림을 켜면 매일 오전 10시에 내 종목 RSI 정리를 알려 드려요. 지난 가격으로 계산한 보조 지표를 보여 줄 뿐 투자를 권하지 않아요.
 
-## 주요 기능 3 (9단계, 순서 = 검색 노출)
-1. 내 종목 RSI 감시 — `intoss://palsal`
-2. 시장 RSI·공포탐욕 — `intoss://palsal/market`
-3. 매일 RSI 알림 — `intoss://palsal/settings`
+## 9단계에서 더할 것
+- 주요 기능 3(순서 = 검색 노출): 1. 내 종목 RSI 감시 `intoss://palsal` · 2. 시장 RSI·공포탐욕 `intoss://palsal/market` · 3. 매일 RSI 알림 `intoss://palsal/settings`
+- 가로 썸네일 1932×828, 세로 스크린샷 636×1048 3장 이상, 이용약관·처리방침 URL(`https://toss-in-app.github.io/palsal/terms/` · `/privacy/`)

@@ -1,0 +1,21 @@
+{
+  "_note": "miniapp_create(2026-11-05)에 보낸 앱 정보 그대로. 11단계 initial_review_submit(miniAppId=97559)의 appInfo 에 다시 담는다. iconUploadId 는 2026-11-12 만료 — 지나면 console/logo.png 를 image_upload_url 로 다시 올려 바꾼다. 주요 기능·썸네일·스크린샷은 9단계에서 더한다.",
+  "workspaceId": 10169,
+  "appType": "NON_GAME",
+  "request": {
+    "miniApp": {
+      "miniAppId": 97559,
+      "appName": "palsal",
+      "title": "팔껄살껄",
+      "titleEn": "Palsal",
+      "description": "RSI로 보는 내 종목",
+      "detailDescription": "담아 둔 국내·미국 주식과 코인, 환율의 RSI(14)와 이동평균을 차트 카드로 이어서 보여 줘요. 내 종목 화면 맨 위에는 RSI가 30 아래로 내려오거나 70을 넘은 종목, 60일선과 120일선이 교차한 종목, 5년 최고가를 새로 쓴 종목이 먼저 보여요. 카드를 누르면 가격 차트와 RSI 흐름, 가격과 RSI가 엇갈린 지점을 자세히 볼 수 있어요. 시장 탭에서는 한국·미국 시가총액 상위 종목의 RSI 순위와 공포탐욕지수를 보고 바로 담을 수 있어요. 알림을 켜면 매일 오전 10시에 내 종목 RSI 정리를 알려 드려요. 지난 가격으로 계산한 보조 지표를 보여 줄 뿐 투자를 권하지 않아요.",
+      "iconUploadId": "mcp-image:10169:1793859989:cd38798c-a8ae-475c-904e-108c60edcdea:png"
+    },
+    "impression": {
+      "categoryIds": [3884],
+      "subCategoryIds": [94],
+      "keywordList": ["RSI", "RSI 알림", "주식 RSI", "코인 RSI", "보조지표", "이동평균", "공포탐욕지수", "관심종목", "주식 차트", "시가총액"]
+    }
+  }
+}
