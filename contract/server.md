@@ -25,7 +25,7 @@ Postgres 표: palsal_quotes · palsal_bars · palsal_market · palsal_demand
 | Edge Function CPU | 요청당 2 s(비동기 I/O 제외) · 실행 150 s · 메모리 256 MB | 한 번에 spark 묶음 15개·일봉 30종목까지 |
 | DB 용량 | 프로젝트당 500 MB | 종목 300 × 봉 3종 × 약 10 KB ≈ 9 MB |
 | **egress** | **5 GB, 조직 전체 합산**(만다라트·사주 앱과 나눠 씀) | 하루 사용자 1명당 약 50 KB → 월 5 GB ≈ 하루 3,000명(다른 앱 몫 빼면 2,000명 안팎). 넘으면 Pro $25/월 또는 읽기만 Cloudflare 로 |
-| 프로젝트 | 무료 2개(모든 조직 합산), 1주일 활동 없으면 정지 | **기존 서울 프로젝트(elpwdczwgcjbkqqjxpuh)에 `palsal_` 표로 함께** — cron 이 매 5분 돌아 정지되지 않음 |
+| 프로젝트 | 무료 2개(모든 조직 합산), 1주일 활동 없으면 정지 | **palsal 전용 프로젝트 `vksqtugrlkzmkjsgosej`(서울 ap-northeast-2, 2026-11-05 생성)** — 사용자 "만다라트 말고 프로젝트 하나 더": 출시 중인 mandalartplan DB 와 섞지 않음. 무료 마지막 자리라 사주 앱 서버는 기존 프로젝트와 같이 쓰거나 유료. cron 이 매 5분 돌아 정지되지 않음. egress·함수 호출 한도는 조직 합산이라 나눠도 늘지 않음 |
 | Cron | 초 단위까지, 동시 작업 8개·작업당 10분 이하 권장 | 작업 3개 |
 
 ## 무엇을 지켜보나 (추적 종목)
@@ -34,16 +34,18 @@ Postgres 표: palsal_quotes · palsal_bars · palsal_market · palsal_demand
 - 없는 심볼은 `palsal_demand.not_found_until` 로 하루 동안 다시 안 부른다.
 
 ## 작업 (pg_cron → pg_net → `palsal-fetch`)
+> 구현(2026-11-05): 예약은 **`palsal-run` 하나가 5분마다** `?mode=run` → tick · daily · market(30분 지났을 때만)을 차례로(`supabase/cron.sql`). 아래 표의 모드는 손으로도 부를 수 있어요. 함수는 `Authorization: Bearer <PALSAL_CRON_KEY>` 만 받아요(cron·palsal_track 이 vault 의 같은 값을 씀).
 | 작업 | 언제 | 하는 일 | 야후 요청 |
 |------|------|---------|-----------|
 | `tick` | **5분마다** | 장이 열린 시장의 추적 종목 현재가: 한국 09:00–15:30 KST · 미국 04:00–20:00 ET(프리·정규·애프터) 평일 · 코인 늘 · 환율 안 함. 야후 spark **20종목씩 묶어서**, 코인은 바이낸스 `ticker/24hr?symbols=[…]` 한 번 → `palsal_quotes` upsert | 추적 300이면 5분에 15 |
-| `daily` | 한국 장 마감 뒤 16:10 KST · 미국 장 마감 뒤 06:30 KST 부터 5분마다 30종목씩 | 일봉(`chart?interval=1d&range=5y`) → 종가·저가 마지막 530개 + 5년 최고가(그 봉 단위 종가의 5년 최댓값) · 주봉(`1wk`, 10y) · 월봉(`1mo`, max) → `palsal_bars` upsert. 환율은 Frankfurter 하루 1회 | 하루 종목 수 × 담긴 봉 단위 수 |
+| `daily` | 봉이 새로 나온 뒤(한국 평일 16:10 KST · 미국 평일 16:30 ET · 코인 매일 00:05 UTC · 환율 평일 15:30 UTC) 오래된 것부터 한 번에 40개(종목×봉 단위) | 일·주·월봉 모두 `chart?range=5y`(원본 RSIngTime 과 같은 범위 — 2026-11-05 구현 때 10y·max 에서 바꿈) → 종가·저가 마지막 530개 + 5년 최고가(= 받은 종가 최댓값) → `palsal_bars` upsert. 코인은 바이낸스 klines(일봉 두 번), 환율은 Frankfurter 5년 일별 한 번으로 일·주·월봉 + 현재가 | 하루 추적 종목 × 3 |
 | `market` | 장중 30분마다 + 마감 뒤 1회 | 시총 상위 60 일봉 RSI(14)·종가·등락, RSI ≤ 30 목록, 공포탐욕(한국 `^KS11` · 미국 `SPY` = RSI × 0.6 + 120일선 위치 × 0.4 / 코인 alternative.me 하루 1회) → `palsal_market` | 0(저장된 봉 + 현재가로 계산) |
 | `new` | RPC 가 부를 때 | 처음 보는 종목(최대 12)의 현재가·봉 즉시 | 종목 수만큼 |
 
 공포탐욕 이름: ≤24 극단적 공포 · ≤44 공포 · ≤55 중립 · ≤75 탐욕 · 그 위 극단적 탐욕.
 
 ## 표 (public 스키마, 접두사 `palsal_`)
+> 실제 정의는 `supabase/schema.sql`(여러 번 돌려도 같음). 구현 때 더한 것: `palsal_universe`(시장 탭 시총 상위 60 — `scripts/server-seed.mjs` 가 static/universe.json 에서 채움) · `palsal_market_inputs(keys)`(시장 계산용 종가 배열 + 마지막 봉 시각만, 서버 키만) · `palsal_symbols` 는 static/symbols.json 에서 채움(5,901).
 ```sql
 create table palsal_quotes (
   symbol text primary key,
@@ -97,6 +99,16 @@ create table palsal_demand (
 |------|------|----|
 | `TICK_MINUTES` | 5 | 현재가 받는 간격(cron 식과 함께) |
 | `SPARK_BATCH` | 20 | 야후 spark 한 요청 종목 수 |
-| `DAILY_PER_RUN` | 30 | daily 한 번에 봉 받을 종목 수 |
+| `DAILY_PER_RUN` | 40 | daily 한 번에 받을 봉 수(종목×봉 단위) — 미국 추적 60여 종목 × 3 을 휴대폰 봉 시각(07:10 KST) 전에 끝내려고 40 |
+| `MARKET_MINUTES` | 30 | 시장 계산 간격 |
+| `PALSAL_CRON_KEY` | (비밀) | cron·palsal_track 만 함수를 부르게 하는 키. vault `palsal_cron_key` 와 같은 값 |
 | `DEMAND_DAYS` | 14 | 이 기간 안에 읽힌 종목만 추적 |
 | `USER_AGENT` | palsal/1.0 | 정직한 이름 |
+
+## 배포 · 운영 (2026-11-05 첫 배포)
+- 프로젝트 `vksqtugrlkzmkjsgosej`(서울). 휴대폰은 `https://vksqtugrlkzmkjsgosej.supabase.co` + publishable key(client/.env, 공개 값)로 읽기만.
+- 처음 한 번: `supabase link --project-ref vksqtugrlkzmkjsgosej` → `supabase db query --remote --yes -f supabase/schema.sql` → `node scripts/server-seed.mjs > /tmp/s.sql && supabase db query --remote --yes -f /tmp/s.sql` → `supabase functions deploy palsal-fetch --project-ref vksqtugrlkzmkjsgosej --no-verify-jwt --use-api --yes` → 비밀 값(아래) → `supabase db query --remote --yes -f supabase/cron.sql`.
+- 비밀 값 `PALSAL_CRON_KEY`: 무작위 값을 함수 비밀(`supabase secrets set`)과 vault(`palsal_cron_key`)에 **같이** 넣어요. 바꿀 때도 둘 다(`vault.update_secret`). 값은 어디에도 적지 않아요.
+- 종목 목록·시총 목록을 바꾸면 `server-seed.mjs` 를 다시(정적 배포와 같이). 함수 고치면 deploy 만.
+- 첫 배포 확인: daily 5번으로 봉 189개(63종목×3), tick 33+1, market 60종목 RSI, palsal_track → pg_net → mode=new 4초 안에 현재가 3 · 봉 9, 공개 키로 palsal_symbols·palsal_demand 0행 · palsal_market_inputs 401, cron 14:20 UTC 성공.
+- 보기: 대시보드 Edge Functions 로그(모드별 한 줄 JSON) · `select * from net._http_response order by created desc limit 5` · `select * from cron.job_run_details order by start_time desc limit 5` · `select * from palsal_fetch_state`(출처별 쉬기).

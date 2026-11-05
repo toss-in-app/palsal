@@ -40,8 +40,18 @@ if (emptyKeys.length > 0 || missingIds.length > 0) {
   console.error(`라이브 광고 그룹 ID 가 비었거나 번들에 없어요: ${[...emptyKeys, ...missingIds].join(', ')} — client/.env.production 확인(콘솔 인앱 광고 → 광고 그룹). 테스트 번들은 npm run build:test-ads`);
   process.exit(1);
 }
+// 시세 서버(8단계): Supabase 주소와 publishable key 가 번들에 들어가야 휴대폰이 시세를 읽어요(비면 모든 카드가 '불러오지 못했어요')
+const supabaseUrl = js.match(/https:\/\/[a-z0-9]{20}\.supabase\.co/)?.[0];
+if (!supabaseUrl || !/sb_publishable_[A-Za-z0-9_-]{10,}/.test(js)) {
+  console.error('출시 번들에 시세 서버 주소(VITE_SUPABASE_URL)나 publishable key 가 없어요 — client/.env 확인(.env.production 에 빈 값을 두면 덮어써요)');
+  process.exit(1);
+}
+if (/sb_secret_/.test(js)) {
+  console.error('출시 번들에 Supabase 비밀 키(sb_secret_)가 들어 있어요 — 절대 안 돼요');
+  process.exit(1);
+}
 if (liveIds.length < EXPECTED_LIVE) {
   console.error(`라이브 광고 그룹 ID 가 ${liveIds.length}개뿐이에요(기대 ${EXPECTED_LIVE}). client/.env.production 의 VITE_AD_GROUP_* 확인`);
   process.exit(1);
 }
-console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳)`);
+console.log(`출시 번들 검사 통과: 테스트 광고 ID 0개, 라이브 광고 그룹 ID ${liveIds.length}개(설정 ${requiredKeys.length}곳), 시세 서버 ${supabaseUrl}`);

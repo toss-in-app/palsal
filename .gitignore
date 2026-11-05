@@ -9,3 +9,6 @@ dist/
 *.pem
 *.key
 *.p12
+
+# supabase link 가 만드는 로컬 상태(프로젝트 ref 등)
+supabase/.temp/

@@ -1,7 +1,11 @@
--- palsal(팔껄살껄) 시세 표 — Supabase 서울 프로젝트(elpwdczwgcjbkqqjxpuh)에 함께, public 스키마 palsal_ 접두사
+-- palsal(팔껄살껄) 시세 표 — palsal 전용 Supabase 프로젝트(vksqtugrlkzmkjsgosej, 서울 ap-northeast-2), public 스키마 palsal_ 접두사
+-- 2026-11-05 사용자 결정: mandalartplan 프로젝트와 따로(출시 중인 앱 DB 와 섞지 않음, 무료 프로젝트 2개 중 마지막 자리).
 -- 계약: contract/server.md · quotes.schema.json · bars.schema.json · market.schema.json
--- 4단계에선 파일만. 적용은 8단계: supabase db query --linked -f supabase/schema.sql
--- 서버가 출처에서 받아 넣고(Edge Function palsal-fetch, service role), 휴대폰은 읽기만(publishable key, RLS select).
+-- 적용: supabase db query --remote --yes -f supabase/schema.sql (여러 번 돌려도 같게 — if not exists · or replace)
+-- 서버가 출처에서 받아 넣고(Edge Function palsal-fetch, 서버 키), 휴대폰은 읽기만(publishable key, RLS select).
+
+create extension if not exists pg_cron;
+create extension if not exists pg_net with schema extensions;
 
 create table if not exists public.palsal_symbols (
   symbol text primary key check (symbol ~ '^\^?[A-Z0-9.=\-]{1,20}$'),
@@ -51,6 +55,15 @@ create table if not exists public.palsal_demand (
   not_found_until timestamptz
 );
 
+-- 시장 탭 시총 상위(static/universe.json 을 옮겨 둔 것, scripts/server-seed.mjs 가 채움)
+create table if not exists public.palsal_universe (
+  side text not null check (side in ('kr', 'us')),
+  rank int not null check (rank between 1 and 30),
+  symbol text not null references public.palsal_symbols (symbol),
+  version text not null,
+  primary key (side, rank)
+);
+
 create table if not exists public.palsal_fetch_state (
   source text primary key,
   fail_count int not null default 0,
@@ -66,6 +79,7 @@ alter table public.palsal_bars enable row level security;
 alter table public.palsal_market enable row level security;
 alter table public.palsal_demand enable row level security;
 alter table public.palsal_fetch_state enable row level security;
+alter table public.palsal_universe enable row level security;
 
 drop policy if exists palsal_quotes_read on public.palsal_quotes;
 create policy palsal_quotes_read on public.palsal_quotes for select to anon, authenticated using (true);
@@ -73,7 +87,20 @@ drop policy if exists palsal_bars_read on public.palsal_bars;
 create policy palsal_bars_read on public.palsal_bars for select to anon, authenticated using (true);
 drop policy if exists palsal_market_read on public.palsal_market;
 create policy palsal_market_read on public.palsal_market for select to anon, authenticated using (true);
--- symbols·demand·fetch_state 는 정책 없음 = anon 접근 불가(서버·RPC 만)
+-- symbols·demand·fetch_state·universe 는 정책 없음 = anon 접근 불가(서버·RPC 만)
+
+-- 시장 계산 입력: 종가 배열과 마지막 봉 시각만(봉 전체를 읽지 않아 전송량을 줄여요). 서버 키만
+create or replace function public.palsal_market_inputs(keys text[])
+returns table (key text, tz text, t_last bigint, c double precision[])
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select b.key, b.tz, b.t[cardinality(b.t)], b.c from palsal_bars b where b.key = any(keys)
+$$;
+revoke all on function public.palsal_market_inputs(text[]) from public, anon, authenticated;
+grant execute on function public.palsal_market_inputs(text[]) to service_role;
 
 -- 휴대폰이 '이 종목들 지켜봐 줘'. 아는 심볼만, 한 번에 12개까지. 처음 보는 종목은 서버를 바로 깨워요(10분에 60개까지).
 create or replace function public.palsal_track(symbols text[])
@@ -108,13 +135,13 @@ begin
   end loop;
   select count(*) into recent_new from palsal_demand where first_seen > now() - interval '10 minutes';
   if cardinality(fresh) > 0 and recent_new <= 60 then
-    -- 8단계: vault 에 palsal_fetch_url · palsal_cron_key 를 넣은 뒤 주석을 풀어요
-    -- perform net.http_post(
-    --   url := (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_fetch_url') || '?mode=new',
-    --   headers := jsonb_build_object('Content-Type', 'application/json',
-    --     'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_cron_key')),
-    --   body := jsonb_build_object('symbols', fresh));
-    null;
+    -- 처음 보는 종목은 서버를 바로 깨워요(vault 의 palsal_fetch_url · palsal_cron_key — supabase/cron.sql 앞에서 넣음)
+    perform net.http_post(
+      url := (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_fetch_url') || '?mode=new',
+      headers := jsonb_build_object('Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_cron_key')),
+      body := jsonb_build_object('symbols', fresh),
+      timeout_milliseconds := 120000);
   end if;
   return touched;
 end;
@@ -122,7 +149,4 @@ $$;
 revoke all on function public.palsal_track(text[]) from public;
 grant execute on function public.palsal_track(text[]) to anon, authenticated;
 
--- 예약 작업(8단계에서 적용, 시각은 UTC — 한국 = UTC+9)
--- select cron.schedule('palsal-tick',   '*/5 * * * *',            $$ select net.http_post(url := (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_fetch_url') || '?mode=tick',   headers := jsonb_build_object('Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_cron_key'))) $$);
--- select cron.schedule('palsal-daily',  '*/5 7-8,21-22 * * 1-6',  $$ … '?mode=daily'  … $$);   -- 한국 16:10~17:55 · 미국 마감 뒤 06:00~07:55 KST
--- select cron.schedule('palsal-market', '*/30 * * * *',           $$ … '?mode=market' … $$);
+-- 예약 작업은 supabase/cron.sql(vault 비밀 값을 넣은 뒤 한 번)

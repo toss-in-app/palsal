@@ -1,5 +1,11 @@
 # palsal 계약 CHANGELOG
 
+## v1.11 — 2026-11-05 (8단계 시세 서버 첫 배포)
+- `[server]` **palsal 전용 Supabase 프로젝트**(서울 `vksqtugrlkzmkjsgosej`) — mandalartplan 프로젝트와 따로(사용자 결정). 휴대폰이 읽는 표·열·RPC 는 그대로.
+- `[server]` 봉은 일·주·월 모두 **5년**(원본과 같은 범위, high5y = 받은 종가 최댓값 → '5년 최고가 ≥ 저장된 종가' 규칙이 늘 맞음). 주봉 약 261개 · 월봉 60개.
+- `[server]` 예약 작업 하나(`palsal-run`, 5분마다 tick → daily → market 30분마다), 표 `palsal_universe` · 함수 `palsal_market_inputs` 더함, `palsal_track` 이 처음 보는 종목을 pg_net 으로 바로 받음.
+- `[client]` 시세 서버 주소·publishable key 를 `client/.env`(모든 빌드)로 — QR 시험 번들도 진짜 서버를 읽게. 출시 번들 검사가 서버 주소·publishable key 가 들었는지, 비밀 키가 없는지 봄.
+
 ## v1.10 — 2026-11-05 (전체 종목 목록 · 시총 30·30)
 - `content.schema.json` symbols `maxItems` 6000 → 8000(여유). 이번 판 5,901개: 한국 2,612(KRX KIND 상장법인목록의 유가증권·코스닥 전부, 코넥스·스팩 뺌 + 한국 ETF 21 · 지수 2) · 미국 3,281(나스닥 Global Select·NYSE 보통주 + 고른 ETF·종목, 워런트·우선주·채권형·폐쇄형 펀드·스팩 뺌) · 코인 6 · 환율 2. 만드는 법 `scripts/build-symbols.py`(공개 목록 3개 + `content/symbols.curated.json` 한국어 이름·별칭).
 - `universe.json` 한국·미국 시총 상위 각 30(2026-11-05 공개 순위 기준, ADR·우선주 코드는 KRX 보통주로). 서버 추적 = 이 60 + 예시 4 + 최근 14일 읽힌 종목.
