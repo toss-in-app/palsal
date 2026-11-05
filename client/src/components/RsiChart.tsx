@@ -46,7 +46,7 @@ export const RsiChart = memo(function RsiChart({ rsi, label, width = 326, height
       {[HIGH_LINE, LOW_LINE].map((v) => (
         <g key={v}>
           <line x1={PL} x2={right + 4} y1={y(v)} y2={y(v)} stroke={colors.grey300} strokeDasharray="3 3" />
-          <text x={width - 2} y={y(v) + 4} fontSize={10.5} fill={colors.grey500} textAnchor="end">
+          <text x={width - 2} y={y(v) + 4} fontSize={11} fill={colors.grey600} textAnchor="end">
             {v}
           </text>
         </g>

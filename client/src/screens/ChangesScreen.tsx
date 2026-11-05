@@ -38,7 +38,7 @@ export function ChangesScreen({ today, items, cards, onOpen, notificationCard }:
       />
 
       {items.length ? (
-        <ul aria-label="최근 바뀐 것" style={{ listStyle: 'none', margin: 0, padding: '0 20px' }}>
+        <ul aria-label="최근 바뀐 것" style={{ listStyle: 'none', margin: 0, padding: '0 24px' }}>
           {items.map((c) => {
             const v = changeView(c);
             const now = cards.entries[c.watchId]?.analysis?.rsi ?? null;
@@ -48,14 +48,16 @@ export function ChangesScreen({ today, items, cards, onOpen, notificationCard }:
                 <button
                   type="button"
                   onClick={() => onOpen(c)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
                 >
-                  <ChangeIcon view={v} size={40} />
+                  <span style={{ marginTop: 1, display: 'inline-flex' }}>
+                    <ChangeIcon view={v} />
+                  </span>
                   <span style={{ minWidth: 0 }}>
                     <Text display="block" typography="t6" fontWeight="semibold" color={colors.grey900}>
                       {v.title}
                     </Text>
-                    <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                    <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
                       {v.sub + rsiNow}
                     </Text>
                   </span>
@@ -70,7 +72,7 @@ export function ChangesScreen({ today, items, cards, onOpen, notificationCard }:
         </Text>
       )}
       {notificationCard ? (
-        <section aria-label="알림 받기" style={{ margin: '16px 20px 0', padding: '18px 18px 14px', borderRadius: 20, background: colors.grey50 }}>
+        <section aria-label="알림 받기" style={{ margin: '16px 20px 0', padding: '20px 20px 16px', borderRadius: 16, background: colors.grey50 }}>
           <Text display="block" typography="t6" fontWeight="bold" color={colors.grey900}>
             이런 소식을 매일 오전 10시에 알림으로 받을까요?
           </Text>
@@ -87,7 +89,7 @@ export function ChangesScreen({ today, items, cards, onOpen, notificationCard }:
           </div>
         </section>
       ) : null}
-      <Text display="block" typography="t7" color={colors.grey500} style={{ margin: '20px 24px 0', lineHeight: 1.6 }}>
+      <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '20px 24px 0', lineHeight: 1.6 }}>
         RSI 30 아래·70 위 진입, 60일선과 120일선 교차, 5년 최고가가 여기에 와요. 담은 종목을 볼 때 찾아서 기록하고, 7일 지난 소식은 지워져요.
       </Text>
     </main>

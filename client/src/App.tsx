@@ -1,5 +1,5 @@
 import { useToast } from '@toss/tds-mobile';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { TabBar } from './components/TabBar';
 import { activeNotice, PRIVACY_URL, symbolIndex, TERMS_URL } from './content';
@@ -9,7 +9,7 @@ import { logEvent } from './lib/analytics';
 import { openUrl } from './lib/bridge';
 import { AGREEMENT_TOAST, notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { kstDateKey } from './lib/date';
-import { TABS, goBack, navigate, useRoute, type TabName } from './lib/router';
+import { TABS, goBack, navigate, routeToHash, useRoute, type TabName } from './lib/router';
 import { rankIndex } from './lib/search';
 import { INTERVAL_LABEL, marketOf } from './lib/format';
 import { AddScreen } from './screens/AddScreen';
@@ -62,6 +62,14 @@ export default function App() {
   // 정적 콘텐츠: 번들로 바로 그리고 하루 한 번 원격(GitHub Pages)에서 새 판이 있으면 바꿔 끼워요(⑪)
   const live = useLiveStatic();
   const rank = useMemo(() => rankIndex(live.universe), [live.universe]);
+
+  // 다른 화면으로 가면 맨 위에서 시작해요. 내 종목은 HomeScreen 이 보던 자리로 되돌려요(자식 효과가 먼저 돌아서 여기선 건너뜀).
+  // 같은 화면에서 시트를 닫을 때(popstate)는 주소가 그대로라 움직이지 않아요.
+  const routeKey = routeToHash(route);
+  const isHome = route.name === 'home';
+  useLayoutEffect(() => {
+    if (!isHome) window.scrollTo(0, 0);
+  }, [routeKey, isHome]);
 
   useEffect(() => {
     // 설정이 처음 만들어지는 날(처음 연 날)에만 예시 종목을 담아요 — 그래서 설정을 먼저 읽어요

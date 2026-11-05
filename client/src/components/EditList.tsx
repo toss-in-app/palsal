@@ -81,8 +81,8 @@ export function EditList({ items, onRemove, onReorder }: EditListProps) {
   };
 
   return (
-    <ul aria-label="내 종목 편집" style={{ listStyle: 'none', margin: '18px 16px 0', padding: 0, background: colors.background, borderRadius: 20, overflow: 'hidden' }}>
-      {order.map((id, i) => {
+    <ul aria-label="내 종목 편집" style={{ listStyle: 'none', margin: '16px 20px 0', padding: 0, background: colors.background, borderRadius: 16, overflow: 'hidden' }}>
+      {order.map((id) => {
         const it = byId.get(id);
         if (!it) return null;
         const name = nameOf(it);
@@ -96,9 +96,8 @@ export function EditList({ items, onRemove, onReorder }: EditListProps) {
               display: 'flex',
               alignItems: 'center',
               gap: 12,
-              padding: '0 6px 0 18px',
+              padding: '0 8px 0 20px',
               background: colors.background,
-              borderTop: i ? `1px solid ${colors.grey100}` : 'none',
               boxSizing: 'border-box',
               position: 'relative',
               zIndex: lifted ? 1 : 0,
@@ -120,7 +119,7 @@ export function EditList({ items, onRemove, onReorder }: EditListProps) {
               <Text display="block" typography="st10" fontWeight="semibold" color={colors.grey900} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {name}
               </Text>
-              <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2 }}>
+              <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2 }}>
                 {`${INTERVAL_LABEL[it.interval]} · ${placeOf(it.symbol, symbolIndex.get(it.symbol))}`}
               </Text>
             </span>

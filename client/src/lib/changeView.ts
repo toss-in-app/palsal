@@ -1,9 +1,7 @@
-import { colors } from '@toss/tds-colors';
-
 import { symbolIndex } from '../content';
 import { eventTitle } from './events';
 import { formatPrice, formatRsi, INTERVAL_LABEL, marketOf, unitOf } from './format';
-import { DOWN, HIGH_BG, HIGH_INK, LOW_BG, LOW_INK, UP } from './palette';
+import { DOWN, HIGH_INK, LOW_INK, UP } from './palette';
 import type { Interval } from './series';
 import { relativeDay, type ChangeItem } from '../state/changes';
 import type { IconName } from '../components/Icon';
@@ -12,26 +10,26 @@ import type { IconName } from '../components/Icon';
 export interface ChangeView {
   icon: IconName;
   ink: string;
-  tint: string;
   title: string;
   sub: string;
   symbol: string;
   interval: Interval;
 }
 
-const TINT: Record<ChangeItem['kind'], [IconName, string, string]> = {
-  rsi_low_enter: ['down', LOW_INK, LOW_BG],
-  rsi_high_enter: ['up', HIGH_INK, HIGH_BG],
-  ma_cross_up: ['xcross', UP, colors.red50],
-  ma_cross_down: ['xcross', DOWN, colors.blue50],
-  high5y: ['star', UP, colors.red50],
+/** 아이콘 · 색(장식 상자 없이 아이콘만 그려요) */
+const MARK: Record<ChangeItem['kind'], [IconName, string]> = {
+  rsi_low_enter: ['down', LOW_INK],
+  rsi_high_enter: ['up', HIGH_INK],
+  ma_cross_up: ['xcross', UP],
+  ma_cross_down: ['xcross', DOWN],
+  high5y: ['star', UP],
 };
 
 export function changeView(c: ChangeItem, now = Date.now()): ChangeView {
   const [symbol, interval] = c.watchId.split('|') as [string, Interval];
   const info = symbolIndex.get(symbol);
   const name = info?.n ?? symbol;
-  const [icon, ink, tint] = TINT[c.kind];
+  const [icon, ink] = MARK[c.kind];
   const market = marketOf(symbol, info);
   let middle = '';
   if ((c.kind === 'rsi_low_enter' || c.kind === 'rsi_high_enter') && c.from !== null && c.to !== null) middle = ` · RSI ${formatRsi(c.from)} → ${formatRsi(c.to)}`;
@@ -39,7 +37,6 @@ export function changeView(c: ChangeItem, now = Date.now()): ChangeView {
   return {
     icon,
     ink,
-    tint,
     title: `${name} ${eventTitle({ kind: c.kind, t: 0 }, interval)}`,
     sub: `${INTERVAL_LABEL[interval]}${middle} · ${relativeDay(c.date, now)}`,
     symbol,

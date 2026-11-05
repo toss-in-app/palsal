@@ -34,7 +34,8 @@ export interface MarketScreenProps {
 }
 
 const nameOf = (s: string) => symbolIndex.get(s)?.n ?? s;
-const card = { background: colors.background, borderRadius: 20, boxShadow: '0 1px 2px rgba(0,27,55,.04)' } as const;
+// 그림자 없이 평평하게, 모서리 16(ref/designers/madia-uiux.md)
+const card = { background: colors.background, borderRadius: 16 } as const;
 
 function FearGreedStrip({ fg, onInfo }: { fg: MarketPayload['fearGreed']; onInfo: () => void }) {
   const strip = useRef<HTMLDivElement>(null);
@@ -47,18 +48,18 @@ function FearGreedStrip({ fg, onInfo }: { fg: MarketPayload['fearGreed']; onInfo
   const onScroll = () => {
     const el = strip.current;
     const first = el?.firstElementChild as HTMLElement | null;
-    if (el && first) setPage(Math.round(el.scrollLeft / (first.offsetWidth + 10)));
+    if (el && first) setPage(Math.round(el.scrollLeft / (first.offsetWidth + 12)));
   };
   return (
     <section aria-label="공포탐욕지수">
-      <div ref={strip} onScroll={onScroll} style={{ display: 'flex', gap: 10, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '4px 16px 0', scrollPadding: '0 16px', scrollbarWidth: 'none' }}>
+      <div ref={strip} onScroll={onScroll} style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '4px 20px 0', scrollPadding: '0 20px', scrollbarWidth: 'none' }}>
         {items.map(([title, v]) => (
-          <div key={title} style={{ ...card, flex: 'none', width: 'calc(100% - 40px)', scrollSnapAlign: 'start', padding: '16px 16px 14px' }}>
+          <div key={title} style={{ ...card, flex: 'none', width: 'calc(100% - 40px)', scrollSnapAlign: 'start', padding: '20px 20px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Text typography="t6" fontWeight="bold" color={colors.grey900}>
                 {title}
               </Text>
-              <button type="button" aria-label="공포탐욕지수 계산 방법" onClick={onInfo} style={{ border: 0, background: 'none', padding: 4, cursor: 'pointer', display: 'inline-flex', color: colors.grey500 }}>
+              <button type="button" aria-label="공포탐욕지수 계산 방법" onClick={onInfo} style={{ border: 0, background: 'none', padding: 4, cursor: 'pointer', display: 'inline-flex', color: colors.grey600 }}>
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="8.5" />
                   <path d="M12 11v5" />
@@ -66,7 +67,7 @@ function FearGreedStrip({ fg, onInfo }: { fg: MarketPayload['fearGreed']; onInfo
                 </svg>
               </button>
               {v.attribution ? (
-                <Text typography="st12" color={colors.grey500} style={{ marginLeft: 'auto' }}>
+                <Text typography="st12" color={colors.grey600} style={{ marginLeft: 'auto' }}>
                   {v.attribution}
                 </Text>
               ) : null}
@@ -74,7 +75,7 @@ function FearGreedStrip({ fg, onInfo }: { fg: MarketPayload['fearGreed']; onInfo
             <div style={{ marginTop: 6 }}>
               <FearGreedGauge score={v.score} label={v.label} />
             </div>
-            <Text display="block" typography="st12" color={colors.grey500} style={{ textAlign: 'center', marginTop: 2 }}>
+            <Text display="block" typography="t7" color={colors.grey600} style={{ textAlign: 'center', marginTop: 4 }}>
               {v.basis}
             </Text>
           </div>
@@ -131,7 +132,7 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
 
   return (
     <main style={{ minHeight: '100vh', background: PAGE_BG, paddingBottom: 120 }}>
-      <Top style={{ background: PAGE_BG }} subtitleTop={<Top.SubtitleParagraph size={13}>{formatDateLabel(today)}</Top.SubtitleParagraph>} title={<Top.TitleParagraph size={22}>시장</Top.TitleParagraph>} />
+      <Top style={{ background: PAGE_BG }} subtitleTop={<Top.SubtitleParagraph size={13}>{formatDateLabel(today)}</Top.SubtitleParagraph>} title={<Top.TitleParagraph size={28}>시장</Top.TitleParagraph>} />
 
       {!data && market.status === 'error' ? (
         <section style={{ ...card, margin: '8px 20px 0', padding: '28px 20px 20px', textAlign: 'center' }}>
@@ -143,7 +144,7 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
           </Button>
         </section>
       ) : !data ? (
-        <div aria-label="시장 정보를 불러오는 중" style={{ margin: '4px 16px 0' }}>
+        <div aria-label="시장 정보를 불러오는 중" style={{ margin: '4px 20px 0' }}>
           <span aria-hidden="true" style={{ ...card, display: 'block', height: 210 }} />
           <span aria-hidden="true" style={{ ...card, display: 'block', height: 240, marginTop: 12 }} />
         </div>
@@ -151,12 +152,12 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
         <>
           <FearGreedStrip fg={data.fearGreed} onInfo={() => setTerm('fear-greed')} />
 
-          <section aria-label="지금 RSI 30 아래인 큰 종목" style={{ ...card, margin: '16px 16px 0', padding: '16px 0 6px' }}>
-            <div style={{ padding: '0 18px 6px' }}>
+          <section aria-label="지금 RSI 30 아래인 큰 종목" style={{ ...card, margin: '12px 20px 0', padding: '20px 0 8px' }}>
+            <div style={{ padding: '0 20px 8px' }}>
               <Text display="block" typography="t5" fontWeight="bold" color={colors.grey900}>
                 지금 RSI 30 아래인 큰 종목
               </Text>
-              <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2 }}>
+              <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2 }}>
                 {`한국·미국 시가총액 상위 ${total}개 중 · 일봉 RSI 14`}
               </Text>
             </div>
@@ -166,12 +167,12 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                   const r = bySymbol.get(s);
                   const done = isWatched(s);
                   return (
-                    <li key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 18px', minHeight: 56, borderTop: `1px solid ${colors.grey100}` }}>
+                    <li key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0 20px', minHeight: 60 }}>
                       <button type="button" onClick={() => onOpen(s)} style={{ flex: 1, minWidth: 0, border: 0, background: 'none', padding: '8px 0', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}>
                         <Text display="block" typography="t6" fontWeight="semibold" color={colors.grey900} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {nameOf(s)}
                         </Text>
-                        <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                        <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
                           {`${marketOfSymbol(s)}${r?.rsi !== null && r?.rsi !== undefined ? ` · RSI ${formatRsi(r.rsi)}` : ''}`}
                         </Text>
                       </button>
@@ -183,19 +184,19 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                 })}
               </ul>
             ) : (
-              <Text display="block" typography="t7" color={colors.grey600} style={{ padding: '10px 18px 12px' }}>
+              <Text display="block" typography="t7" color={colors.grey600} style={{ padding: '10px 20px 12px' }}>
                 지금은 RSI 30 아래인 큰 종목이 없어요
               </Text>
             )}
           </section>
 
           {/* 배너 광고 banner-market: '지금 RSI 30 아래인 큰 종목' 뒤 1개 — 계약 events.md */}
-          <div style={{ margin: '16px 16px 0' }}>
+          <div style={{ margin: '12px 20px 0' }}>
             <AdBanner adGroupId={AD_GROUPS.bannerMarket} onResult={(result) => logEvent('ad_banner', { slot: 'market', result })} />
           </div>
 
-          <section aria-label="시가총액 순위" style={{ ...card, margin: '16px 16px 0', padding: '16px 0 8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 18px 10px' }}>
+          <section aria-label="시가총액 순위" style={{ ...card, margin: '12px 20px 0', padding: '20px 0 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px 8px' }}>
               <Text typography="t5" fontWeight="bold" color={colors.grey900}>
                 시가총액 순위
               </Text>
@@ -214,9 +215,9 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                   <button
                     type="button"
                     onClick={() => onOpen(r.symbol)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
                   >
-                    <Text typography="t7" fontWeight="bold" color={colors.grey500} style={{ width: 20, flex: 'none', fontVariantNumeric: 'tabular-nums' }}>
+                    <Text typography="t7" fontWeight="medium" color={colors.grey600} style={{ width: 20, flex: 'none', fontVariantNumeric: 'tabular-nums' }}>
                       {r.rank}
                     </Text>
                     <span style={{ flex: 1, minWidth: 0 }}>
@@ -224,7 +225,7 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                         {nameOf(r.symbol)}
                       </Text>
                       {r.changePct !== null ? (
-                        <Text display="block" typography="st12" color={changeColor(r.changePct)} style={{ marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
+                        <Text display="block" typography="t7" color={changeColor(r.changePct)} style={{ marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
                           {formatPct(r.changePct)}
                         </Text>
                       ) : null}
@@ -242,12 +243,12 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                 </li>
               ))}
             </ol>
-            <Text display="block" typography="st12" color={colors.grey500} style={{ padding: '6px 18px 4px' }}>
+            <Text display="block" typography="st12" color={colors.grey600} style={{ padding: '8px 20px 4px' }}>
               {`${rank.length}위까지 · ${Number(asOf.slice(5, 7))}월 ${Number(asOf.slice(8, 10))}일 기준 순위 · 오른쪽 숫자는 일봉 RSI 14`}
             </Text>
           </section>
 
-          <Text display="block" typography="st12" color={colors.grey500} style={{ margin: '14px 24px 0' }}>
+          <Text display="block" typography="st12" color={colors.grey600} style={{ margin: '16px 24px 0' }}>
             {`30분마다 다시 계산해요 · ${formatKstTime(Date.parse(data.computedAt))} 기준`}
           </Text>
         </>

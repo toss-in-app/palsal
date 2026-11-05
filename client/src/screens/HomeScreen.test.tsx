@@ -66,7 +66,10 @@ describe('HomeScreen', () => {
     expect(screen.getByText('11월 5일 목요일 · 15:30 기준')).toBeInTheDocument();
     expect(screen.getByText('카카오')).toBeInTheDocument();
     expect(screen.getByText('035720 · 코스피')).toBeInTheDocument();
-    expect(screen.getAllByText('RSI 14')).toHaveLength(2);
+    // 'RSI 14' 라벨은 카드마다가 아니라 목록 머리에 한 번, 일봉 딱지는 주봉·월봉일 때만
+    expect(screen.getAllByText('RSI 14 기준')).toHaveLength(1);
+    expect(screen.queryByText('RSI 14')).not.toBeInTheDocument();
+    expect(screen.queryByText('일봉')).not.toBeInTheDocument();
     expect(screen.getAllByRole('img', { name: /최근 180일 가격과 이동평균/ })).toHaveLength(2);
     fireEvent.click(screen.getByRole('link', { name: /^카카오 일봉/ }));
     expect(h.onOpen).toHaveBeenCalledWith(items[0]);

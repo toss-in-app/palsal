@@ -5,8 +5,8 @@ import { memo, type KeyboardEvent, type ReactNode } from 'react';
 import { useLongPress } from '../lib/useLongPress';
 
 import type { SymbolEntry } from '../content';
-import { avatarText, BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
-import { changeColor, DOWN, HIGH_INK, LOW_INK, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
+import { BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
+import { changeColor, DOWN, HIGH_INK, LOW_INK, MA_120, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
 import type { Analysis } from '../lib/series';
 import { isStale, type CardEntry } from '../state/cards';
 import type { WatchItem } from '../state/watch';
@@ -24,22 +24,37 @@ export interface StockCardProps {
   now?: number;
 }
 
-const card = { display: 'block', background: colors.background, borderRadius: 20, padding: '16px 16px 14px', boxShadow: '0 1px 2px rgba(0,27,55,.04)', cursor: 'pointer' } as const;
+// 마디아 원칙(ref/designers/madia-uiux.md): 그림자 없이 평평하게, 모서리 16, 안쪽 20
+const card = { display: 'block', background: colors.background, borderRadius: 16, padding: '20px 20px 18px', cursor: 'pointer' } as const;
 const tabular = { fontVariantNumeric: 'tabular-nums' } as const;
 
+/** 엇갈림·교차 한 줄 — 상자 없이 아이콘 + 글(둥근 상자 안 둥근 상자 금지) */
 function SignalRow({ icon, ink, title, sub }: { icon: IconName; ink: string; title: string; sub: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 8, background: colors.grey50, borderRadius: 10, padding: '8px 10px' }}>
-      <Icon name={icon} size={18} color={ink} strokeWidth={2.2} />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10 }}>
+      <span style={{ marginTop: 1, flex: 'none', display: 'inline-flex' }}>
+        <Icon name={icon} size={16} color={ink} strokeWidth={2.2} />
+      </span>
       <span>
         <Text display="block" typography="t7" fontWeight="semibold" color={colors.grey800}>
           {title}
         </Text>
-        <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2, ...tabular }}>
+        <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 1, ...tabular }}>
           {sub}
         </Text>
       </span>
     </div>
+  );
+}
+
+/** 원화 가격은 숫자와 '원'을 떼어 단위를 작게(핵심 숫자는 크게 · 단위는 작게) */
+function PriceText({ text }: { text: string }) {
+  const won = text.endsWith('원');
+  return (
+    <Text display="block" typography="t4" fontWeight="semibold" color={colors.grey900} style={tabular}>
+      {won ? text.slice(0, -1) : text}
+      {won ? <span style={{ fontSize: 15, fontWeight: 500, marginLeft: 1 }}>원</span> : null}
+    </Text>
   );
 }
 
@@ -109,26 +124,52 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
     signals = rows;
   }
 
+  // 카드 아래 한 줄은 필요할 때만: 늦은 시세 · 처음 받는 중 · 불러오는 중 · 주봉/월봉의 120선 표시(범례는 일봉 기준)
+  const footNote: { text: ReactNode; ink: string } | null = failed
+    ? null
+    : stale && at
+      ? { text: `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요`, ink: colors.orange700 }
+      : entry?.status === 'pending' && !a
+        ? { text: '처음 보는 종목이라 시세를 받는 중이에요', ink: colors.grey600 }
+        : !a
+          ? { text: '불러오는 중', ink: colors.grey500 }
+          : item.interval !== '1d'
+            ? {
+                text: (
+                  <>
+                    <span style={{ color: MA_120 }}>┄</span>
+                    {` 120${barUnit}선`}
+                  </>
+                ),
+                ink: colors.grey600,
+              }
+            : null;
+
   return (
     <article role="link" tabIndex={0} aria-label={label} {...press} onKeyDown={onKey} style={{ ...card, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span
-          aria-hidden="true"
-          style={{ width: 36, height: 36, borderRadius: 18, background: colors.grey100, color: colors.grey700, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}
-        >
-          {avatarText(name)}
-        </span>
-        <span style={{ minWidth: 0 }}>
-          <Text display="block" typography="st10" fontWeight="bold" color={colors.grey900} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      {/* 훑어볼 때 먼저 보이게 상태(RSI · 구간)를 이름 옆 맨 위에 — 카드의 주인공 숫자는 이것 하나 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <Text display="block" typography="st10" fontWeight="semibold" color={colors.grey900} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {name}
           </Text>
-          <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2 }}>
-            {codeLine(item.symbol, info)}
+          <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2 }}>
+            {/* 일봉이 기본이라 주봉·월봉일 때만 적어요(같은 문구를 카드마다 되풀이하지 않기) */}
+            {`${codeLine(item.symbol, info)}${item.interval !== '1d' ? ` · ${INTERVAL_LABEL[item.interval]}` : ''}`}
           </Text>
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: colors.grey600, background: colors.grey100, borderRadius: 6, padding: '3px 7px', flex: 'none' }}>
-          {INTERVAL_LABEL[item.interval]}
-        </span>
+        {failed ? null : (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+            {rsi !== null && zoneKey ? (
+              <>
+                <span style={{ fontSize: 28, fontWeight: 700, lineHeight: '34px', color: rsiInk, ...tabular }}>{formatRsi(rsi)}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, borderRadius: 6, padding: '3px 7px', color: zoneInk(zoneKey), background: zoneBg(zoneKey) }}>{ZONE_LABEL[zoneKey]}</span>
+              </>
+            ) : (
+              <Skel w={72} h={30} />
+            )}
+          </span>
+        )}
       </div>
 
       {failed ? (
@@ -150,56 +191,28 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 12 }}>
-            <div style={{ minWidth: 0 }}>
-              {price !== null ? (
-                <Text display="block" typography="t4" fontWeight="bold" color={colors.grey900} style={tabular}>
-                  {formatPrice(price, unit, fx)}
-                </Text>
-              ) : (
-                <Skel w={110} h={24} />
-              )}
-              {price !== null && prevClose ? (
-                <Text display="block" typography="t7" fontWeight="semibold" color={changeColor(price - prevClose)} style={{ marginTop: 2, ...tabular }}>
-                  {`${formatChange(price - prevClose, unit, fx, price)} (${formatPct(((price - prevClose) / prevClose) * 100)})`}
-                </Text>
-              ) : null}
-              {quote?.ext_session && quote.ext_price && quote.ext_change_pct !== null ? (
-                <Text display="block" typography="st12" color={colors.grey600} style={{ marginTop: 3, ...tabular }}>
-                  {`${quote.ext_session === 'pre' ? '프리마켓' : '애프터마켓'} ${formatPrice(quote.ext_price, unit, fx)} `}
-                  <span style={{ color: changeColor(quote.ext_change_pct) }}>{formatPct(quote.ext_change_pct)}</span>
-                </Text>
-              ) : null}
-              {a ? (
-                a.fromHigh >= 0 ? (
-                  <Text display="block" typography="st12" color={UP} style={{ marginTop: 3 }}>
-                    5년 최고가를 새로 썼어요
-                  </Text>
-                ) : (
-                  <Text display="block" typography="st12" color={colors.grey600} style={{ marginTop: 3, ...tabular }}>
-                    5년 최고가보다 <b style={{ color: DOWN }}>{`${a.fromHigh.toFixed(1)}%`}</b>
-                  </Text>
-                )
-              ) : null}
-            </div>
-            <div style={{ textAlign: 'right', flex: 'none' }}>
-              <Text display="block" typography="st12" color={colors.grey500}>
-                RSI 14
+          {/* 변화율은 값 옆에 */}
+          <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0 8px', marginTop: 12 }}>
+            {price !== null ? <PriceText text={formatPrice(price, unit, fx)} /> : <Skel w={110} h={24} />}
+            {price !== null && prevClose ? (
+              <Text typography="t7" fontWeight="medium" color={changeColor(price - prevClose)} style={tabular}>
+                {`${formatChange(price - prevClose, unit, fx, price)} (${formatPct(((price - prevClose) / prevClose) * 100)})`}
               </Text>
-              <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                {rsi !== null && zoneKey ? (
-                  <>
-                    <span style={{ fontSize: 26, fontWeight: 700, lineHeight: '28px', color: rsiInk, ...tabular }}>{formatRsi(rsi)}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '3px 7px', color: zoneInk(zoneKey), background: zoneBg(zoneKey) }}>{ZONE_LABEL[zoneKey]}</span>
-                  </>
-                ) : (
-                  <Skel w={60} h={28} />
-                )}
-              </div>
-            </div>
+            ) : null}
           </div>
+          {quote?.ext_session && quote.ext_price && quote.ext_change_pct !== null ? (
+            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              {`${quote.ext_session === 'pre' ? '프리마켓' : '애프터마켓'} ${formatPrice(quote.ext_price, unit, fx)} `}
+              <span style={{ color: changeColor(quote.ext_change_pct) }}>{formatPct(quote.ext_change_pct)}</span>
+            </Text>
+          ) : null}
+          {a ? (
+            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              {a.fromHigh >= 0 ? '5년 최고가를 새로 썼어요' : `5년 최고가보다 ${a.fromHigh.toFixed(1)}%`}
+            </Text>
+          ) : null}
 
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 12 }}>
             {a ? (
               <PriceChart model={a.chart} tz={tz} interval={item.interval} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
             ) : (
@@ -210,28 +223,11 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
         </>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 10 }}>
-        <Text typography="st12" color={colors.grey500}>
-          {a
-            ? `${INTERVAL_LABEL[item.interval]} · 최근 ${a.chart.c.length}${barUnit}${item.interval === '1d' ? '' : ` · ┄ 120${barUnit}선`}`
-            : entry?.status === 'pending'
-              ? '처음 보는 종목이라 시세를 받는 중이에요'
-              : failed
-                ? INTERVAL_LABEL[item.interval]
-                : '불러오는 중'}
+      {footNote ? (
+        <Text display="block" typography="t7" color={footNote.ink} style={{ marginTop: 10, ...tabular }}>
+          {footNote.text}
         </Text>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none' }}>
-          {at && !failed ? (
-            <Text typography="st12" color={stale ? colors.orange700 : colors.grey500} style={tabular}>
-              {stale ? `${formatKstTime(at)} · 갱신이 늦어지고 있어요` : formatKstTime(at)}
-            </Text>
-          ) : null}
-          <Text typography="st12" fontWeight="semibold" color={colors.grey600} style={{ display: 'inline-flex', alignItems: 'center' }}>
-            자세히
-            <Icon name="chev" size={14} color={colors.grey500} />
-          </Text>
-        </span>
-      </div>
+      ) : null}
     </article>
   );
 });

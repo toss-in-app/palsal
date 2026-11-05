@@ -50,21 +50,21 @@ export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps)
     const el = strip.current;
     const first = el?.firstElementChild as HTMLElement | null;
     if (!el || !first) return;
-    setPage(Math.min(shown.length - 1, Math.round(el.scrollLeft / (first.offsetWidth + 10))));
+    setPage(Math.min(shown.length - 1, Math.round(el.scrollLeft / (first.offsetWidth + 12))));
   };
 
   return (
     <section aria-label="최근 바뀐 것">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '12px 24px 8px' }}>
         <Text typography="t6" fontWeight="bold" color={colors.grey900}>
-          최근 바뀐 것 <span style={{ color: colors.grey500, fontWeight: 600 }}>{items.length}</span>
+          최근 바뀐 것 <span style={{ color: colors.grey600, fontWeight: 600 }}>{items.length}</span>
         </Text>
         <button type="button" onClick={onAll} style={{ border: 0, background: 'none', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 600, color: colors.grey600, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
           모두 보기
-          <Icon name="chev" size={14} color={colors.grey500} />
+          <Icon name="chev" size={14} color={colors.grey600} />
         </button>
       </div>
-      <div ref={strip} onScroll={onScroll} style={{ display: 'flex', gap: 10, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '0 16px', scrollPadding: '0 16px', scrollbarWidth: 'none' }}>
+      <div ref={strip} onScroll={onScroll} style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '0 20px', scrollPadding: '0 20px', scrollbarWidth: 'none' }}>
         {shown.map((c) => {
           const v = changeView(c);
           const closes = cards.entries[c.watchId]?.analysis?.chart.c.slice(-48) ?? [];
@@ -79,15 +79,14 @@ export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps)
                 scrollSnapAlign: 'start',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                gap: 12,
                 background: colors.background,
-                borderRadius: 18,
-                padding: 12,
+                borderRadius: 16,
+                padding: '14px 16px',
                 border: 0,
                 textAlign: 'left',
                 font: 'inherit',
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,27,55,.04)',
               }}
             >
               <ChangeIcon view={v} />
@@ -95,7 +94,7 @@ export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps)
                 <Text display="block" typography="t7" fontWeight="semibold" color={colors.grey900} style={{ lineHeight: '19px' }}>
                   {v.title}
                 </Text>
-                <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
                   {v.sub}
                 </Text>
               </span>

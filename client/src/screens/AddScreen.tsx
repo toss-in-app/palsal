@@ -130,7 +130,7 @@ export function AddScreen({ symbols, rank, watched, source, onAdd, onDone, onToa
               contents={<ListRow.Texts type="2RowTypeA" top={e.n} bottom={codeLine(e.s, e)} />}
               right={
                 done ? (
-                  <Text typography="t7" color={colors.grey500}>
+                  <Text typography="t7" color={colors.grey600}>
                     담음
                   </Text>
                 ) : q ? (

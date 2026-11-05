@@ -3,6 +3,7 @@ import { memo, useId } from 'react';
 
 import { exchangeDay, type ChartModel, type ExchangeTz, type Interval } from '../lib/series';
 import { DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP } from '../lib/palette';
+import { niceTicks } from '../lib/ticks';
 
 export interface PriceChartProps {
   model: ChartModel;
@@ -15,9 +16,10 @@ export interface PriceChartProps {
 }
 
 const PL = 2;
-const PR = 48;
 const PT = 12;
 const PB = 22;
+/** 눈금 글자(11px) 한 자 폭 어림 — 쉼표·점은 좁게 */
+const textWidth = (s: string) => [...s].reduce((w, ch) => w + (ch === ',' || ch === '.' ? 3 : 6.6), 0);
 
 function axisText(v: number): string {
   const a = Math.abs(v);
@@ -73,7 +75,7 @@ function ticks(t: number[], tz: ExchangeTz, interval: Interval, x: (i: number) =
  * 가격 차트: 종가 선 · 이동평균 · ▲△(30 아래) · ▼(엇갈린 고점) · 엇갈림 점선. TDS 에 차트가 없어 SVG 로 그려요.
  * 세로 범위는 원본처럼 가격만으로 잡고, 이동평균이 범위 밖으로 나간 부분은 잘라요(가격 선이 눌리지 않게).
  */
-export const PriceChart = memo(function PriceChart({ model, tz, interval, label, width = 326, height = 168 }: PriceChartProps) {
+export const PriceChart = memo(function PriceChart({ model, tz, interval, label, width = 310, height = 168 }: PriceChartProps) {
   const clipId = `clip${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const { c } = model;
   const n = c.length;
@@ -83,6 +85,10 @@ export const PriceChart = memo(function PriceChart({ model, tz, interval, label,
   const pad = (hi - lo || hi * 0.02 || 1) * 0.1;
   lo -= pad;
   hi += pad * 1.4;
+  const levels = niceTicks(lo, hi);
+  const labels = levels.map(axisText);
+  // 오른쪽 눈금 자리는 가장 긴 눈금 글자 + 여백(원화 6자리도 선 끝점과 부딪히지 않게)
+  const PR = Math.max(30, Math.ceil(Math.max(0, ...labels.map(textWidth)) + 12));
   const x = (i: number) => PL + (i / (n - 1)) * (width - PL - PR);
   const y = (v: number) => PT + ((hi - v) / (hi - lo)) * (height - PT - PB);
   const ink = c[n - 1] >= c[0] ? UP : DOWN;
@@ -92,21 +98,18 @@ export const PriceChart = memo(function PriceChart({ model, tz, interval, label,
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label={label} style={{ display: 'block', overflow: 'visible' }}>
-      {[0.2, 0.5, 0.8].map((f) => {
-        const v = hi - (hi - lo) * f;
-        return (
-          <g key={f}>
-            <line x1={PL} x2={width - PR + 4} y1={y(v)} y2={y(v)} stroke={colors.grey100} strokeWidth={1} />
-            <text x={width - 2} y={y(v) + 4} fontSize={10.5} fill={colors.grey500} textAnchor="end">
-              {axisText(v)}
-            </text>
-          </g>
-        );
-      })}
+      {levels.map((v, i) => (
+        <g key={v}>
+          <line x1={PL} x2={width - PR + 4} y1={y(v)} y2={y(v)} stroke={colors.grey100} strokeWidth={1} />
+          <text x={width - 2} y={y(v) + 4} fontSize={11} fill={colors.grey600} textAnchor="end">
+            {labels[i]}
+          </text>
+        </g>
+      ))}
       {ticks(model.t, tz, interval, x).map((tk) => (
         <g key={tk.x}>
           <line x1={tk.x} x2={tk.x} y1={height - PB} y2={height - PB + 3} stroke={colors.grey300} />
-          <text x={tk.x} y={height - 5} fontSize={10.5} fill={colors.grey500} textAnchor="middle">
+          <text x={tk.x} y={height - 5} fontSize={11} fill={colors.grey600} textAnchor="middle">
             {tk.text}
           </text>
         </g>

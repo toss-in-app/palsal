@@ -24,7 +24,7 @@ const STATUS_TEXT: Record<'agreed' | 'declined' | 'ready', string> = { agreed: '
 /** 알림이 이렇게 와요 — 콘솔 템플릿 palsal-daily 의 제목·본문(계약 events.md) */
 function NotificationPreview() {
   return (
-    <div aria-label="알림 미리 보기" style={{ margin: '0 24px 8px', padding: '12px 14px', borderRadius: 14, background: colors.grey50, display: 'flex', gap: 10, alignItems: 'center' }}>
+    <div aria-label="알림 미리 보기" style={{ margin: '0 24px 8px', padding: '12px 16px', borderRadius: 16, background: colors.grey50, display: 'flex', gap: 10, alignItems: 'center' }}>
       <span aria-hidden="true" style={{ width: 32, height: 32, borderRadius: 9, background: colors.blue500, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
         <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 16l5.5-5.5 4 4L21 6" />
@@ -38,7 +38,7 @@ function NotificationPreview() {
           오늘 내 종목 RSI를 정리했어요
         </Text>
       </span>
-      <Text typography="st12" color={colors.grey500} style={{ marginLeft: 'auto', flex: 'none' }}>
+      <Text typography="st12" color={colors.grey600} style={{ marginLeft: 'auto', flex: 'none' }}>
         매일 10:00
       </Text>
     </div>
@@ -78,7 +78,7 @@ export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerm
 
   return (
     <main style={{ paddingBottom: 120 }}>
-      <Top title={<Top.TitleParagraph size={22}>설정</Top.TitleParagraph>} />
+      <Top title={<Top.TitleParagraph size={28}>설정</Top.TitleParagraph>} />
 
       <ListHeader title={<ListHeader.TitleParagraph typography="t7" fontWeight="bold" color={colors.grey700}>알림</ListHeader.TitleParagraph>} />
       <List>
@@ -87,7 +87,7 @@ export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerm
           disabled={!notification.available}
           contents={<ListRow.Texts type="2RowTypeA" top="매일 RSI 알림" bottom="매일 오전 10시에 내 종목 RSI를 확인하라고 알려요" />}
           right={
-            <Text typography="t7" fontWeight="semibold" color={notification.status === 'agreed' ? colors.blue500 : colors.grey500}>
+            <Text typography="t7" fontWeight="semibold" color={notification.status === 'agreed' ? colors.blue500 : colors.grey600}>
               {!notification.available ? '준비 중' : STATUS_TEXT[notification.status === 'agreed' ? 'agreed' : notification.status === 'declined' ? 'declined' : 'ready']}
             </Text>
           }
@@ -171,7 +171,7 @@ export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerm
         <Text display="block" typography="t7" color={colors.grey600} style={{ ...para, marginTop: 14 }}>
           {content.disclaimer}
         </Text>
-        <Text display="block" typography="t7" color={colors.grey500} style={{ marginTop: 14 }}>
+        <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 14 }}>
           {`앱 버전 ${__APP_VERSION__} · 도움말 버전 ${content.contentVersion}`}
         </Text>
       </div>

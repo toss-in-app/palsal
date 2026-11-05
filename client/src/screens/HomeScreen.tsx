@@ -68,7 +68,7 @@ function HeaderButton({ icon, label, onClick }: { icon: IconName; label: string;
       type="button"
       aria-label={label}
       onClick={onClick}
-      style={{ width: 40, height: 40, borderRadius: 20, border: 0, background: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,27,55,.04)' }}
+      style={{ width: 40, height: 40, borderRadius: 20, border: 0, background: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}
     >
       <Icon name={icon} size={20} color={colors.grey700} strokeWidth={icon === 'plus' ? 2.4 : 2} />
     </button>
@@ -76,7 +76,7 @@ function HeaderButton({ icon, label, onClick }: { icon: IconName; label: string;
 }
 
 function Legend() {
-  const row = { display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11.5, color: colors.grey600, padding: '6px 24px 0' } as const;
+  const row = { display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 12, color: colors.grey700, padding: '8px 24px 0' } as const;
   return (
     <div aria-label="차트 표시 읽는 법">
       <div style={row}>
@@ -256,7 +256,7 @@ export function HomeScreen(props: HomeScreenProps) {
       <main style={{ minHeight: '100vh', background: PAGE_BG, paddingBottom: 40 }}>
         <Top
           style={{ background: PAGE_BG }}
-          title={<Top.TitleParagraph size={22}>내 종목</Top.TitleParagraph>}
+          title={<Top.TitleParagraph size={28}>내 종목</Top.TitleParagraph>}
           subtitleBottom={<Top.SubtitleParagraph size={13}>끌어서 순서를 바꾸고, 빨간 버튼으로 빼요</Top.SubtitleParagraph>}
           right={
             <div style={{ marginRight: 20 }}>
@@ -274,7 +274,7 @@ export function HomeScreen(props: HomeScreenProps) {
             onReorder(ids);
           }}
         />
-        <Text display="block" typography="t7" color={colors.grey500} style={{ margin: '12px 24px 0', lineHeight: 1.5 }}>
+        <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '12px 24px 0', lineHeight: 1.5 }}>
           같은 종목을 일봉·주봉으로 따로 담았다면 각각 따로 움직여요.
         </Text>
       </main>
@@ -286,7 +286,7 @@ export function HomeScreen(props: HomeScreenProps) {
       <Top
         style={{ background: PAGE_BG }}
         subtitleTop={<Top.SubtitleParagraph size={13}>{`${formatDateLabel(today)}${cards.latestAt ? ` · ${formatKstTime(cards.latestAt)} 기준` : ''}`}</Top.SubtitleParagraph>}
-        title={<Top.TitleParagraph size={22}>{`내 종목 ${items.length}`}</Top.TitleParagraph>}
+        title={<Top.TitleParagraph size={28}>{`내 종목 ${items.length}`}</Top.TitleParagraph>}
         right={
           <div style={{ display: 'flex', gap: 6, marginRight: 20 }}>
             {items.length ? <HeaderButton icon="search" label="내 종목에서 찾기" onClick={() => setSearching((v) => !v)} /> : null}
@@ -324,7 +324,7 @@ export function HomeScreen(props: HomeScreenProps) {
       {items.length ? <ChangeBanner items={changes} cards={cards} onOpen={onOpenChange} onAll={onAllChanges} /> : null}
 
       {items.length === 0 ? (
-        <section aria-label="담아 둔 종목" style={{ margin: '8px 20px 0', padding: '28px 20px 20px', borderRadius: 20, background: colors.background, textAlign: 'center' }}>
+        <section aria-label="담아 둔 종목" style={{ margin: '8px 20px 0', padding: '28px 20px 20px', borderRadius: 16, background: colors.background, textAlign: 'center' }}>
           <Text display="block" typography="t5" fontWeight="bold" color={colors.grey900}>
             담아 둔 종목이 없어요
           </Text>
@@ -342,14 +342,20 @@ export function HomeScreen(props: HomeScreenProps) {
         </section>
       ) : (
         <>
-          <div role="group" aria-label="RSI로 걸러 보기" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 24px 0' }}>
-            <Pill on={filter === 'all'} onClick={() => onFilter('all')}>{`전체 ${items.length}`}</Pill>
-            <Pill on={filter === 'low'} onClick={() => onFilter('low')}>{`30 아래 ${counts.low}`}</Pill>
-            <Pill on={filter === 'high'} onClick={() => onFilter('high')}>{`70 위 ${counts.high}`}</Pill>
+          {/* 카드마다 쓰던 'RSI 14' 라벨은 목록 머리에 한 번(ref/designers/madia-uiux.md 5절) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 24px 0' }}>
+            <div role="group" aria-label="RSI로 걸러 보기" style={{ display: 'flex', gap: 6 }}>
+              <Pill on={filter === 'all'} onClick={() => onFilter('all')}>{`전체 ${items.length}`}</Pill>
+              <Pill on={filter === 'low'} onClick={() => onFilter('low')}>{`30 아래 ${counts.low}`}</Pill>
+              <Pill on={filter === 'high'} onClick={() => onFilter('high')}>{`70 위 ${counts.high}`}</Pill>
+            </div>
+            <Text typography="t7" color={colors.grey600} style={{ marginLeft: 'auto', flex: 'none' }}>
+              RSI 14 기준
+            </Text>
           </div>
           <Legend />
 
-          <section aria-label="내 종목 차트" style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '12px 16px 0' }}>
+          <section aria-label="내 종목 차트" style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '16px 20px 0' }}>
             {shown.map((it, i) => (
               <Fragment key={it.id}>
                 <StockCard
@@ -374,9 +380,9 @@ export function HomeScreen(props: HomeScreenProps) {
               </Text>
             ) : null}
             {more ? (
-              <div ref={sentinel} aria-label="다음 종목을 불러오는 중" style={{ background: colors.background, borderRadius: 20, padding: '20px 16px', textAlign: 'center' }}>
+              <div ref={sentinel} aria-label="다음 종목을 불러오는 중" style={{ background: colors.background, borderRadius: 16, padding: 20, textAlign: 'center' }}>
                 <span aria-hidden="true" style={{ display: 'block', height: 120, borderRadius: 12, background: colors.grey100 }} />
-                <Text display="block" typography="t7" color={colors.grey500} style={{ marginTop: 12 }}>
+                <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 12 }}>
                   다음 종목을 불러오고 있어요
                 </Text>
               </div>
@@ -389,7 +395,7 @@ export function HomeScreen(props: HomeScreenProps) {
         </>
       )}
 
-      <Text display="block" typography="t7" color={colors.grey500} style={{ margin: '24px 24px 0', lineHeight: 1.6 }}>
+      <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '24px 24px 0', lineHeight: 1.6 }}>
         {disclaimer}
       </Text>
     </main>

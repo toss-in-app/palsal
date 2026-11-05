@@ -45,7 +45,7 @@ const EVENT_ICON: Record<StockEvent['kind'], [IconName, string]> = {
 
 function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
-    <section style={{ margin: '0 20px', padding: '18px 0 0' }}>
+    <section style={{ margin: '0 24px', padding: '24px 0 0' }}>
       <Text display="block" typography="t5" fontWeight="bold" color={colors.grey900} style={{ marginBottom: 8 }}>
         {title}
       </Text>
@@ -92,12 +92,12 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   const pending = !a && entry?.status === 'pending';
   const at = quote ? Date.parse(quote.fetched_at) : null;
   const stale = isStale(quote);
-  const legendRow = { display: 'flex', flexWrap: 'wrap', gap: '6px 8px', fontSize: 12, color: colors.grey600, margin: '8px 20px 0', alignItems: 'center' } as const;
+  const legendRow = { display: 'flex', flexWrap: 'wrap', gap: '6px 8px', fontSize: 12, color: colors.grey700, margin: '8px 24px 0', alignItems: 'center' } as const;
 
   return (
     <main style={{ paddingBottom: 40 }}>
       <div style={{ padding: '12px 24px 0' }}>
-        <Text display="block" typography="st12" color={colors.grey500}>
+        <Text display="block" typography="t7" color={colors.grey600}>
           {codeLine(symbol, info)}
         </Text>
         <Text display="block" typography="t3" fontWeight="bold" color={colors.grey900} style={{ marginTop: 2 }}>
@@ -109,7 +109,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
               {formatPrice(price, unit, fx)}
             </Text>
             {prevClose ? (
-              <Text typography="t6" fontWeight="semibold" color={changeColor(price - prevClose)} style={tabular}>
+              <Text typography="t6" fontWeight="medium" color={changeColor(price - prevClose)} style={tabular}>
                 {`${formatChange(price - prevClose, unit, fx, price)} (${formatPct(((price - prevClose) / prevClose) * 100)})`}
               </Text>
             ) : null}
@@ -126,7 +126,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
           </Text>
         ) : null}
         {a ? (
-          <Text display="block" typography="t7" color={a.fromHigh >= 0 ? UP : colors.grey600} style={{ marginTop: 4, ...tabular }}>
+          <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
             <TermWord label="5년 최고가 뜻 보기" onClick={() => setTerm('high5y')}>
               5년 최고가
             </TermWord>
@@ -134,13 +134,13 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
               '를 새로 썼어요'
             ) : (
               <>
-                보다 <b style={{ color: DOWN }}>{`${a.fromHigh.toFixed(1)}%`}</b>
+                {`보다 ${a.fromHigh.toFixed(1)}%`}
               </>
             )}
           </Text>
         ) : null}
         {at ? (
-          <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey500} style={{ marginTop: 4, ...tabular }}>
+          <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey600} style={{ marginTop: 4, ...tabular }}>
             {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준`}
           </Text>
         ) : null}
@@ -176,7 +176,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
         <>
           <div style={{ margin: '14px 20px 0' }}>
             {a ? (
-              <PriceChart model={a.chart} tz={tz} interval={interval} height={200} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
+              <PriceChart model={a.chart} tz={tz} interval={interval} width={350} height={200} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
             ) : (
               <span aria-hidden="true" style={{ display: 'block', height: 200, borderRadius: 12, background: colors.grey100 }} />
             )}
@@ -208,7 +208,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
             ) : null}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '22px 20px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '24px 24px 8px' }}>
             <Text typography="t5" fontWeight="bold" color={colors.grey900}>
               <TermWord label="RSI 14 뜻 보기" onClick={() => setTerm('rsi14')}>
                 RSI 14
@@ -261,14 +261,14 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
                           onClick={() => setTerm(eventTerm(e.kind))}
                           style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
                         >
-                          <span style={{ width: 32, height: 32, borderRadius: 16, background: colors.grey50, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                          <span style={{ marginTop: 2, display: 'inline-flex', flex: 'none' }}>
                             <Icon name={icon} size={18} color={ink} strokeWidth={2.2} />
                           </span>
                           <span>
                             <Text display="block" typography="t6" fontWeight="semibold" color={colors.grey800}>
                               {eventTitle(e, interval)}
                             </Text>
-                            <Text display="block" typography="st12" color={colors.grey500} style={{ marginTop: 2, ...tabular }}>
+                            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2, ...tabular }}>
                               {sub}
                             </Text>
                           </span>
@@ -298,7 +298,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
           </Button>
         )}
       </div>
-      <Text display="block" typography="t7" color={colors.grey500} style={{ margin: '20px 24px 0', lineHeight: 1.6 }}>
+      <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '20px 24px 0', lineHeight: 1.6 }}>
         {disclaimer}
       </Text>
 

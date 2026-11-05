@@ -1,11 +1,11 @@
 import { Icon } from './Icon';
 import type { ChangeView } from '../lib/changeView';
 
-/** 변화 아이콘 상자(시안 v2 배너 카드의 왼쪽) */
-export function ChangeIcon({ view, size = 36 }: { view: ChangeView; size?: number }) {
+/** 변화 아이콘 — 장식 상자 없이 아이콘만, 색이 종류를 말해요(제목 글이 뜻을 전해요) */
+export function ChangeIcon({ view, size = 20 }: { view: ChangeView; size?: number }) {
   return (
-    <span aria-hidden="true" style={{ width: size, height: size, borderRadius: 12, background: view.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
-      <Icon name={view.icon} size={18} color={view.ink} strokeWidth={2.2} />
+    <span aria-hidden="true" style={{ display: 'inline-flex', flex: 'none' }}>
+      <Icon name={view.icon} size={size} color={view.ink} strokeWidth={2.2} />
     </span>
   );
 }
