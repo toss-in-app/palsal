@@ -2,6 +2,25 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { createElement } from 'react';
+import type { SwitchProps } from '@toss/tds-mobile';
+
+// TDS Switch 는 Lottie 애니메이션을 그리는데 jsdom 에서는 못 그려요('map' 오류 — mandalartplan 2026-10-29 와 같음). 테스트에서는 같은 역할의 체크박스(role=switch)로 바꿔요
+vi.mock('@toss/tds-mobile', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@toss/tds-mobile')>();
+  return {
+    ...actual,
+    Switch: ({ checked, disabled, onChange, 'aria-label': ariaLabel }: SwitchProps) =>
+      createElement('input', {
+        type: 'checkbox',
+        role: 'switch',
+        checked: checked === true,
+        disabled,
+        'aria-label': ariaLabel,
+        onChange: (event: React.ChangeEvent<HTMLInputElement>) => onChange?.(event, event.target.checked),
+      }),
+  };
+});
 
 afterEach(() => {
   cleanup();

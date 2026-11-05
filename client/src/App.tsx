@@ -2,17 +2,18 @@ import { useToast } from '@toss/tds-mobile';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { TabBar } from './components/TabBar';
-import { activeNotice, bundledContent, bundledSymbols, bundledUniverse, symbolIndex } from './content';
+import { activeNotice, bundledContent, bundledSymbols, bundledUniverse, PRIVACY_URL, symbolIndex, TERMS_URL } from './content';
 import { createMarketSource, type MarketSource } from './data';
+import { openUrl } from './lib/bridge';
 import { kstDateKey } from './lib/date';
-import { TABS, goBack, navigate, useRoute, type Route, type TabName } from './lib/router';
+import { TABS, goBack, navigate, useRoute, type TabName } from './lib/router';
 import { rankIndex } from './lib/search';
 import { INTERVAL_LABEL } from './lib/format';
 import { AddScreen } from './screens/AddScreen';
 import { ChangesScreen } from './screens/ChangesScreen';
 import { MarketScreen } from './screens/MarketScreen';
 import { HomeScreen } from './screens/HomeScreen';
-import { PlaceholderScreen } from './screens/PlaceholderScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 import { StockScreen } from './screens/StockScreen';
 import { forgetSaved, rememberSaved, setMarketSource, useCards } from './state/cards';
 import { dropChanges, loadChanges, onLiveChanges, useChanges, type ChangeItem } from './state/changes';
@@ -20,10 +21,6 @@ import { loadMarket, useMarket } from './state/market';
 import { loadSettings, updateSettings, useSettings } from './state/settings';
 import { addWatch, loadWatch, removeWatch, reorderWatch, useWatch, watchId, type WatchItem } from './state/watch';
 
-/** 아직 만들지 않은 화면의 이름(5단계에서 실제 화면으로 바꿔요) */
-const TITLES: Record<Exclude<Route['name'], 'home' | 'stock' | 'add' | 'changes' | 'market'>, string> = {
-  settings: '설정',
-};
 
 /** 보는 동안 새로 생긴 RSI 진입 토스트 — 여러 개면 첫 종목 외 N개 */
 function liveToast(fresh: ChangeItem[]): string {
@@ -181,7 +178,15 @@ export default function App() {
       />
     );
   } else {
-    screen = <PlaceholderScreen title={TITLES[route.name]} onBack={goBack} />;
+    screen = (
+      <SettingsScreen
+        content={bundledContent}
+        autoRefresh={settings.autoRefresh}
+        onAutoRefresh={(autoRefresh) => updateSettings({ autoRefresh })}
+        onOpenTerms={() => void openUrl(TERMS_URL)}
+        onOpenPrivacy={() => void openUrl(PRIVACY_URL)}
+      />
+    );
   }
 
   return (
