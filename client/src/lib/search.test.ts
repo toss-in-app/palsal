@@ -28,7 +28,9 @@ describe('search', () => {
 
   it('코인은 기호, 분류가 다르면 안 나와요', () => {
     expect(find('btc', 'CRYPTO')[0]).toBe('BTC-USD');
-    expect(find('btc', 'US')).toEqual([]);
+    // 미국 탭엔 비트코인 ETF(FBTC 등)는 나와도 코인 자체는 안 나와요(전체 종목 목록, 2026-11-05)
+    expect(find('btc', 'US')).not.toContain('BTC-USD');
+    expect(find('btc', 'US')).toContain('FBTC');
   });
 
   it('빈 검색어면 분류 전체를 시가총액 순으로', () => {

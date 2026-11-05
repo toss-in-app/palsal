@@ -1,5 +1,9 @@
 # palsal 계약 CHANGELOG
 
+## v1.10 — 2026-11-05 (전체 종목 목록 · 시총 30·30)
+- `content.schema.json` symbols `maxItems` 6000 → 8000(여유). 이번 판 5,901개: 한국 2,612(KRX KIND 상장법인목록의 유가증권·코스닥 전부, 코넥스·스팩 뺌 + 한국 ETF 21 · 지수 2) · 미국 3,281(나스닥 Global Select·NYSE 보통주 + 고른 ETF·종목, 워런트·우선주·채권형·폐쇄형 펀드·스팩 뺌) · 코인 6 · 환율 2. 만드는 법 `scripts/build-symbols.py`(공개 목록 3개 + `content/symbols.curated.json` 한국어 이름·별칭).
+- `universe.json` 한국·미국 시총 상위 각 30(2026-11-05 공개 순위 기준, ADR·우선주 코드는 KRX 보통주로). 서버 추적 = 이 60 + 예시 4 + 최근 14일 읽힌 종목.
+
 ## v1.9 — 2026-11-05 (6단계 테스트)
 - `[server]` **값 반올림**: `palsal_quotes`·`palsal_bars` 의 가격은 넣기 전에 반올림(한국 원 정수 · 미국 달러·지수·환율 소수 4자리 · 코인 유효숫자 8자리) — 기기 봉 저장 크기를 지키려고(`server.md`).
 - `npm run contract` 가 스키마 밖 규칙까지 본다(봉 길이·순서·high5y, 키 꼴·중복, 금지 표현, 시장 목록 순서, 반올림 안 된 값) — `contract/scripts/validate.py` 와 같은 규칙을 Node 로 옮김.
