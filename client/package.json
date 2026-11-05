@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && ait build",
+    "build": "vite build && node scripts/check-release-bundle.mjs && ait build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "deploy": "ait deploy",
     "typecheck": "tsc -b",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:test-ads": "vite build --mode test-ads && ait build"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "3.8.1",

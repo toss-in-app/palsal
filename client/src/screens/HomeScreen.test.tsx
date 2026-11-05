@@ -179,4 +179,45 @@ describe('HomeScreen', () => {
     fireEvent.change(field, { target: { value: '없는종목' } });
     expect(screen.getByText('내 종목에서 찾는 종목이 없어요')).toBeInTheDocument();
   });
+
+  it('전면 광고 차례인 날: 안내 한 줄 + 카드 AD, 배너 광고는 둘째 카드 뒤', () => {
+    const items = [item('035720.KS'), item('005930.KS'), item('NVDA')];
+    const cards: CardsState = { entries: { '035720.KS|1d': entry(bars(-1)), '005930.KS|1d': entry(bars(1)), 'NVDA|1d': entry(bars(1)) }, latestAt: null };
+    render(
+      <TDSMobileAITProvider brandPrimaryColor="#3182F6">
+        <HomeScreen
+          today="2026-11-05"
+          items={items}
+          cards={cards}
+          filter="all"
+          autoRefresh={false}
+          notice={null}
+          disclaimer=""
+          online
+          changes={[]}
+          adUpcoming
+          onFilter={vi.fn()}
+          onAdd={vi.fn()}
+          onOpenMarket={vi.fn()}
+          onOpen={vi.fn()}
+          onToast={vi.fn()}
+          onOpenChange={vi.fn()}
+          onAllChanges={vi.fn()}
+          onRemove={vi.fn()}
+          onReorder={vi.fn()}
+        />
+      </TDSMobileAITProvider>,
+    );
+    expect(screen.getByText(/오늘 처음 종목을 열 때 광고가 한 번 나와요/)).toBeInTheDocument();
+    expect(screen.getAllByText('AD')).toHaveLength(3);
+    const section = screen.getByRole('region', { name: '내 종목 차트' });
+    const kids = Array.from(section.children);
+    expect(kids[2].getAttribute('data-testid')).toBe('ad-banner');
+  });
+
+  it('차례가 아니면 안내·AD 없음', () => {
+    renderHome([item('NVDA')], { entries: { 'NVDA|1d': entry(bars(1)) }, latestAt: null });
+    expect(screen.queryByText('AD')).not.toBeInTheDocument();
+    expect(screen.queryByText(/광고가 한 번 나와요/)).not.toBeInTheDocument();
+  });
 });

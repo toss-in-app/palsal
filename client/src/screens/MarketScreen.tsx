@@ -2,6 +2,8 @@ import { colors } from '@toss/tds-colors';
 import { BottomSheet, Button, SegmentedControl, Text, Top } from '@toss/tds-mobile';
 import { useEffect, useRef, useState } from 'react';
 
+import { AD_GROUPS } from '../ads/config';
+import { AdBanner } from '../components/AdBanner';
 import { FearGreedGauge } from '../components/FearGreedGauge';
 import { Icon } from '../components/Icon';
 import { Pill } from '../components/Pill';
@@ -176,7 +178,10 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
             )}
           </section>
 
-          {/* 배너 광고 banner-market 자리(기능 ⑨) */}
+          {/* 배너 광고 banner-market: '지금 RSI 30 아래인 큰 종목' 뒤 1개 — 계약 events.md */}
+          <div style={{ margin: '16px 16px 0' }}>
+            <AdBanner adGroupId={AD_GROUPS.bannerMarket} />
+          </div>
 
           <section aria-label="시가총액 순위" style={{ ...card, margin: '16px 16px 0', padding: '16px 0 8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 18px 10px' }}>
