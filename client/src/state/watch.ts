@@ -51,8 +51,25 @@ function persist(items: WatchItem[]): Promise<void> {
   return writeJson(WATCH_KEY, { version: 1, items });
 }
 
-export async function loadWatch(): Promise<void> {
-  const items = parseWatch(await readJson(WATCH_KEY));
+/**
+ * 처음 연 날 미리 담아 두는 예시 종목 — 원본과 같은 4개(나스닥 100 ETF · S&P 500 ETF · 삼성전자 · SK하이닉스, 일봉).
+ * 설정도 담은 종목도 저장된 적이 없을 때 한 번만. 나중에 다 빼도 다시 채우지 않아요(원본과 같음).
+ */
+export const STARTER: { symbol: string; interval: Interval }[] = [
+  { symbol: 'QQQ', interval: '1d' },
+  { symbol: 'SPY', interval: '1d' },
+  { symbol: '005930.KS', interval: '1d' },
+  { symbol: '000660.KS', interval: '1d' },
+];
+
+/** 담은 종목을 읽어요. firstOpen(설정이 처음 만들어진 날)이고 담은 종목도 저장된 적이 없으면 예시 종목을 넣어요 */
+export async function loadWatch(firstOpen = false, now = Date.now()): Promise<void> {
+  const raw = await readJson(WATCH_KEY);
+  let items = parseWatch(raw);
+  if (firstOpen && raw === null) {
+    items = STARTER.map((e, i) => ({ id: watchId(e.symbol, e.interval), symbol: e.symbol, interval: e.interval, addedAt: now + i }));
+    void persist(items);
+  }
   watchStore.set({ ready: true, items });
 }
 

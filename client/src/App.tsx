@@ -60,8 +60,10 @@ export default function App() {
   const rank = useMemo(() => rankIndex(bundledUniverse), []);
 
   useEffect(() => {
-    void loadWatch().then(loadChanges);
-    void loadSettings();
+    // 설정이 처음 만들어지는 날(처음 연 날)에만 예시 종목을 담아요 — 그래서 설정을 먼저 읽어요
+    void loadSettings()
+      .then((firstOpen) => loadWatch(firstOpen))
+      .then(loadChanges);
     void createMarketSource().then((s) => {
       setMarketSource(s);
       setSource(s);

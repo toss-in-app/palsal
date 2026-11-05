@@ -19,6 +19,7 @@ const END_PRICE: Record<string, number> = {
   NVDA: 201.37,
   TSLA: 412.8,
   AAPL: 268.47,
+  QQQ: 614.2,
   SPY: 682.4,
   'BTC-USD': 104820,
   'ETH-USD': 3521.4,

@@ -43,3 +43,27 @@ describe('addWatch · removeWatch', () => {
     expect(watchStore.get()).toMatchObject({ ready: true, items: [{ id: 'TSLA|1d' }] });
   });
 });
+
+describe('처음 연 날 예시 종목', () => {
+  beforeEach(() => watchStore.set({ ready: false, items: [] }));
+
+  it('설정도 담은 종목도 저장된 적이 없으면 원본과 같은 4개를 일봉으로', async () => {
+    await loadWatch(true, 1000);
+    expect(watchStore.get().items.map((i) => i.id)).toEqual(['QQQ|1d', 'SPY|1d', '005930.KS|1d', '000660.KS|1d']);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(parseWatch(await readJson(WATCH_KEY))).toHaveLength(4);
+  });
+
+  it('다 뺀 뒤에는 다시 채우지 않아요', async () => {
+    addWatch([{ symbol: 'NVDA', interval: '1d' }]);
+    removeWatch('NVDA|1d');
+    await new Promise((r) => setTimeout(r, 0));
+    await loadWatch(true);
+    expect(watchStore.get().items).toEqual([]);
+  });
+
+  it('처음 연 날이 아니면 넣지 않아요', async () => {
+    await loadWatch(false);
+    expect(watchStore.get().items).toEqual([]);
+  });
+});

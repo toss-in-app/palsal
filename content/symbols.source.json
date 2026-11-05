@@ -1,7 +1,7 @@
 {
  "kind": "symbols",
  "schema": 1,
- "contentVersion": "2026-11-05.1",
+ "contentVersion": "2026-11-05.2",
  "minClientVersion": "1.0.0",
  "items": [
   {
@@ -238,6 +238,17 @@
    "e": "Oracle Corporation",
    "m": "US",
    "x": "NYSE"
+  },
+  {
+   "s": "QQQ",
+   "n": "나스닥 100 ETF(QQQ)",
+   "e": "Invesco QQQ Trust",
+   "a": [
+    "나스닥100",
+    "큐큐큐"
+   ],
+   "m": "US",
+   "x": "NASDAQ"
   },
   {
    "s": "SPY",

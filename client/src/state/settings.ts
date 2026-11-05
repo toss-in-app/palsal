@@ -48,11 +48,13 @@ export function parseSettings(json: unknown, now = Date.now()): Settings {
 
 export const settingsStore = createStore<Settings>(defaultSettings());
 
-export async function loadSettings(): Promise<void> {
+/** 설정을 읽어요. 저장된 설정이 아예 없으면(처음 연 날) true */
+export async function loadSettings(): Promise<boolean> {
   const raw = await readJson(SETTINGS_KEY);
   const s = parseSettings(raw);
   settingsStore.set(s);
   if (raw === null) void writeJson(SETTINGS_KEY, s);
+  return raw === null;
 }
 
 export function updateSettings(patch: Partial<Omit<Settings, 'version'>>): void {
