@@ -1,0 +1,291 @@
+{
+ "kind": "symbols",
+ "schema": 1,
+ "contentVersion": "2026-11-05.1",
+ "minClientVersion": "1.0.0",
+ "items": [
+  {
+   "s": "000270.KS",
+   "n": "기아",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "000660.KS",
+   "n": "SK하이닉스",
+   "a": [
+    "하이닉스"
+   ],
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "005380.KS",
+   "n": "현대차",
+   "a": [
+    "현대자동차"
+   ],
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "005930.KS",
+   "n": "삼성전자",
+   "a": [
+    "삼전"
+   ],
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "009150.KS",
+   "n": "삼성전기",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "012450.KS",
+   "n": "한화에어로스페이스",
+   "a": [
+    "한화에어로"
+   ],
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "028260.KS",
+   "n": "삼성물산",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "032830.KS",
+   "n": "삼성생명",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "034020.KS",
+   "n": "두산에너빌리티",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "035720.KS",
+   "n": "카카오",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "055550.KS",
+   "n": "신한지주",
+   "a": [
+    "신한금융"
+   ],
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "105560.KS",
+   "n": "KB금융",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "207940.KS",
+   "n": "삼성바이오로직스",
+   "a": [
+    "삼바"
+   ],
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "247540.KQ",
+   "n": "에코프로비엠",
+   "m": "KR",
+   "x": "KOSDAQ"
+  },
+  {
+   "s": "329180.KS",
+   "n": "HD현대중공업",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "373220.KS",
+   "n": "LG에너지솔루션",
+   "a": [
+    "엘지엔솔"
+   ],
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "402340.KS",
+   "n": "SK스퀘어",
+   "m": "KR",
+   "x": "KOSPI"
+  },
+  {
+   "s": "^KS11",
+   "n": "코스피 지수",
+   "e": "KOSPI Composite Index",
+   "m": "KR"
+  },
+  {
+   "s": "AAPL",
+   "n": "애플",
+   "e": "Apple Inc.",
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "AMD",
+   "n": "AMD",
+   "e": "Advanced Micro Devices, Inc.",
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "AMZN",
+   "n": "아마존",
+   "e": "Amazon.com, Inc.",
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "AVGO",
+   "n": "브로드컴",
+   "e": "Broadcom Inc.",
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "BRK-B",
+   "n": "버크셔 해서웨이",
+   "e": "Berkshire Hathaway Inc.",
+   "a": [
+    "버크셔"
+   ],
+   "m": "US",
+   "x": "NYSE"
+  },
+  {
+   "s": "GOOGL",
+   "n": "알파벳",
+   "e": "Alphabet Inc.",
+   "a": [
+    "구글"
+   ],
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "JPM",
+   "n": "JP모건",
+   "e": "JPMorgan Chase & Co.",
+   "m": "US",
+   "x": "NYSE"
+  },
+  {
+   "s": "LLY",
+   "n": "일라이 릴리",
+   "e": "Eli Lilly and Company",
+   "a": [
+    "릴리"
+   ],
+   "m": "US",
+   "x": "NYSE"
+  },
+  {
+   "s": "META",
+   "n": "메타",
+   "e": "Meta Platforms, Inc.",
+   "a": [
+    "페이스북"
+   ],
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "MSFT",
+   "n": "마이크로소프트",
+   "e": "Microsoft Corporation",
+   "a": [
+    "마소"
+   ],
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "MU",
+   "n": "마이크론",
+   "e": "Micron Technology, Inc.",
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "NVDA",
+   "n": "엔비디아",
+   "e": "NVIDIA Corporation",
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "ORCL",
+   "n": "오라클",
+   "e": "Oracle Corporation",
+   "m": "US",
+   "x": "NYSE"
+  },
+  {
+   "s": "SPY",
+   "n": "S&P 500 ETF(SPY)",
+   "e": "SPDR S&P 500 ETF Trust",
+   "m": "US",
+   "x": "NYSEARCA"
+  },
+  {
+   "s": "TSLA",
+   "n": "테슬라",
+   "e": "Tesla, Inc.",
+   "m": "US",
+   "x": "NASDAQ"
+  },
+  {
+   "s": "WMT",
+   "n": "월마트",
+   "e": "Walmart Inc.",
+   "m": "US"
+  },
+  {
+   "s": "BTC-USD",
+   "n": "비트코인",
+   "e": "Bitcoin",
+   "m": "CRYPTO",
+   "x": "BINANCE"
+  },
+  {
+   "s": "ETH-USD",
+   "n": "이더리움",
+   "e": "Ethereum",
+   "m": "CRYPTO",
+   "x": "BINANCE"
+  },
+  {
+   "s": "JPYKRW=X",
+   "n": "엔원 환율",
+   "e": "JPY/KRW",
+   "m": "FX",
+   "x": "FX"
+  },
+  {
+   "s": "USDKRW=X",
+   "n": "달러원 환율",
+   "e": "USD/KRW",
+   "m": "FX",
+   "x": "FX"
+  }
+ ]
+}

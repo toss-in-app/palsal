@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.ait
+# .env 는 공개 값(VITE_*)만 두고 커밋해요. 비밀은 .env.local 에만 — 그 파일은 무시
+.env.local
+.env.*.local
+.DS_Store
+*.log
+*.pem
+*.key
+*.p12

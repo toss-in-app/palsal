@@ -1,0 +1,248 @@
+{
+ "schema": 1,
+ "asOf": "2026-11-05T06:40:00Z",
+ "computedAt": "2026-11-05T06:30:00Z",
+ "stale": false,
+ "universeVersion": "2026-11-01.1",
+ "fearGreed": {
+  "kr": {
+   "score": 38,
+   "label": "공포",
+   "basis": "코스피 RSI와 120일선 위치"
+  },
+  "us": {
+   "score": 61,
+   "label": "탐욕",
+   "basis": "SPY RSI와 120일선 위치"
+  },
+  "crypto": {
+   "score": 22,
+   "label": "극단적 공포",
+   "basis": "alternative.me 코인 공포탐욕지수",
+   "attribution": "출처 alternative.me",
+   "sourceDate": "2026-11-05"
+  }
+ },
+ "universe": {
+  "kr": [
+   {
+    "symbol": "005930.KS",
+    "rank": 1,
+    "rsi": 51.2,
+    "close": 434.52,
+    "changePct": -2.96
+   },
+   {
+    "symbol": "000660.KS",
+    "rank": 2,
+    "rsi": 58.4,
+    "close": 445.8,
+    "changePct": -1.17
+   },
+   {
+    "symbol": "402340.KS",
+    "rank": 3,
+    "rsi": 61.0,
+    "close": 481.67,
+    "changePct": -0.76
+   },
+   {
+    "symbol": "009150.KS",
+    "rank": 4,
+    "rsi": 66.3,
+    "close": 485.12,
+    "changePct": -0.47
+   },
+   {
+    "symbol": "373220.KS",
+    "rank": 5,
+    "rsi": 44.1,
+    "close": 585.4,
+    "changePct": 0.17
+   },
+   {
+    "symbol": "005380.KS",
+    "rank": 6,
+    "rsi": 47.0,
+    "close": 307.89,
+    "changePct": -0.6
+   },
+   {
+    "symbol": "207940.KS",
+    "rank": 7,
+    "rsi": 27.2,
+    "close": 127.07,
+    "changePct": 0.79
+   },
+   {
+    "symbol": "105560.KS",
+    "rank": 8,
+    "rsi": 41.5,
+    "close": 85.6,
+    "changePct": -2.0
+   },
+   {
+    "symbol": "032830.KS",
+    "rank": 9,
+    "rsi": 55.0,
+    "close": 884.86,
+    "changePct": 1.99
+   },
+   {
+    "symbol": "028260.KS",
+    "rank": 10,
+    "rsi": 49.1,
+    "close": 573.23,
+    "changePct": -0.45
+   },
+   {
+    "symbol": "012450.KS",
+    "rank": 11,
+    "rsi": 72.4,
+    "close": 183.87,
+    "changePct": 1.71
+   },
+   {
+    "symbol": "034020.KS",
+    "rank": 12,
+    "rsi": 63.3,
+    "close": 100.62,
+    "changePct": 0.16
+   },
+   {
+    "symbol": "055550.KS",
+    "rank": 13,
+    "rsi": 29.4,
+    "close": 211.68,
+    "changePct": 0.02
+   },
+   {
+    "symbol": "329180.KS",
+    "rank": 14,
+    "rsi": 57.2,
+    "close": 444.34,
+    "changePct": 0.35
+   },
+   {
+    "symbol": "000270.KS",
+    "rank": 15,
+    "rsi": 38.0,
+    "close": 424.45,
+    "changePct": 0.93
+   }
+  ],
+  "us": [
+   {
+    "symbol": "NVDA",
+    "rank": 1,
+    "rsi": 71.1,
+    "close": 594.25,
+    "changePct": -1.42
+   },
+   {
+    "symbol": "AAPL",
+    "rank": 2,
+    "rsi": 54.0,
+    "close": 474.81,
+    "changePct": -0.81
+   },
+   {
+    "symbol": "GOOGL",
+    "rank": 3,
+    "rsi": 62.2,
+    "close": 286.44,
+    "changePct": -1.32
+   },
+   {
+    "symbol": "MSFT",
+    "rank": 4,
+    "rsi": 49.3,
+    "close": 898.01,
+    "changePct": 2.68
+   },
+   {
+    "symbol": "AMZN",
+    "rank": 5,
+    "rsi": 45.0,
+    "close": 651.64,
+    "changePct": -0.07
+   },
+   {
+    "symbol": "META",
+    "rank": 6,
+    "rsi": 52.6,
+    "close": 317.99,
+    "changePct": 0.15
+   },
+   {
+    "symbol": "AVGO",
+    "rank": 7,
+    "rsi": 60.1,
+    "close": 109.69,
+    "changePct": 1.15
+   },
+   {
+    "symbol": "TSLA",
+    "rank": 8,
+    "rsi": 27.6,
+    "close": 701.34,
+    "changePct": -2.2
+   },
+   {
+    "symbol": "MU",
+    "rank": 9,
+    "rsi": 67.0,
+    "close": 378.54,
+    "changePct": 1.59
+   },
+   {
+    "symbol": "BRK-B",
+    "rank": 10,
+    "rsi": 46.2,
+    "close": 864.34,
+    "changePct": 0.03
+   },
+   {
+    "symbol": "AMD",
+    "rank": 11,
+    "rsi": 58.0,
+    "close": 228.26,
+    "changePct": -0.04
+   },
+   {
+    "symbol": "LLY",
+    "rank": 12,
+    "rsi": 25.9,
+    "close": 823.73,
+    "changePct": -3.86
+   },
+   {
+    "symbol": "JPM",
+    "rank": 13,
+    "rsi": 51.4,
+    "close": 387.81,
+    "changePct": 0.74
+   },
+   {
+    "symbol": "WMT",
+    "rank": 14,
+    "rsi": 43.0,
+    "close": 112.08,
+    "changePct": -1.67
+   },
+   {
+    "symbol": "ORCL",
+    "rank": 15,
+    "rsi": 56.5,
+    "close": null,
+    "changePct": null
+   }
+  ]
+ },
+ "low": [
+  "LLY",
+  "207940.KS",
+  "TSLA",
+  "055550.KS"
+ ]
+}

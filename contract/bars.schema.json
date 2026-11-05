@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://toss-in-app.github.io/palsal/contract/bars.schema.json",
+  "title": "palsal 봉 v1 (GET /rest/v1/palsal_bars)",
+  "description": "PostgREST 가 돌려주는 palsal_bars 행 배열. 장 마감 뒤 하루 1회 갱신. 종가(c)·저가(l)만 — 시가·고가는 화면에 안 씀. t·c·l 은 같은 길이·t 오름차순(scripts/validate.py 가 확인). 휴대폰은 그날 처음 볼 때만 받아 Storage 에 하루 저장하고, 마지막 봉은 palsal_quotes.price 로 덮어써 RSI 를 다시 계산한다.",
+  "type": "array",
+  "maxItems": 100,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["key", "symbol", "interval", "currency", "tz", "source", "t", "c", "l", "high5y", "updated_at"],
+    "properties": {
+      "key": { "type": "string", "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}\\|(1d|1wk|1mo)$" },
+      "symbol": { "type": "string", "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}$" },
+      "interval": { "enum": ["1d", "1wk", "1mo"] },
+      "currency": { "enum": ["KRW", "USD", "JPY"] },
+      "tz": { "enum": ["Asia/Seoul", "America/New_York", "UTC"] },
+      "source": { "enum": ["yahoo", "binance", "frankfurter"] },
+      "t": { "type": "array", "minItems": 1, "maxItems": 430, "items": { "type": "integer", "minimum": 0 }, "description": "봉 시작 epoch 초(UTC)" },
+      "c": { "type": "array", "minItems": 1, "maxItems": 430, "items": { "type": "number", "exclusiveMinimum": 0 } },
+      "l": { "type": "array", "minItems": 1, "maxItems": 430, "items": { "type": "number", "exclusiveMinimum": 0 } },
+      "high5y": { "type": "number", "exclusiveMinimum": 0, "description": "최근 5년(상장 5년 미만이면 상장 뒤) 일봉 고가의 최댓값" },
+      "updated_at": { "type": "string", "format": "date-time" }
+    }
+  }
+}
