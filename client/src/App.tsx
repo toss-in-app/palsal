@@ -2,7 +2,8 @@ import { useToast } from '@toss/tds-mobile';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TabBar } from './components/TabBar';
-import { activeNotice, bundledContent, bundledSymbols, bundledUniverse, PRIVACY_URL, symbolIndex, TERMS_URL } from './content';
+import { activeNotice, PRIVACY_URL, symbolIndex, TERMS_URL } from './content';
+import { loadStatic, useLiveStatic } from './content/live';
 import { createMarketSource, type MarketSource } from './data';
 import { logEvent } from './lib/analytics';
 import { openUrl } from './lib/bridge';
@@ -58,7 +59,9 @@ export default function App() {
   const market = useMarket();
   const online = useOnline();
   const toast = useToast();
-  const rank = useMemo(() => rankIndex(bundledUniverse), []);
+  // 정적 콘텐츠: 번들로 바로 그리고 하루 한 번 원격(GitHub Pages)에서 새 판이 있으면 바꿔 끼워요(⑪)
+  const live = useLiveStatic();
+  const rank = useMemo(() => rankIndex(live.universe), [live.universe]);
 
   useEffect(() => {
     // 설정이 처음 만들어지는 날(처음 연 날)에만 예시 종목을 담아요 — 그래서 설정을 먼저 읽어요
@@ -69,6 +72,9 @@ export default function App() {
       setMarketSource(s);
       setSource(s);
     });
+    void loadStatic(today, __APP_VERSION__, (name, code) => logEvent('data_error', { endpoint: name, code }));
+    // 앱을 열 때 한 번
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const say = useCallback((text: string) => toast.openToast(text), [toast]);
@@ -150,8 +156,8 @@ export default function App() {
           cards={cards}
           filter={settings.filter}
           autoRefresh={settings.autoRefresh}
-          notice={activeNotice(bundledContent, today)}
-          disclaimer={bundledContent.disclaimer}
+          notice={activeNotice(live.content, today)}
+          disclaimer={live.content.disclaimer}
           online={online}
           onFilter={(filter) => {
             updateSettings({ filter });
@@ -177,7 +183,7 @@ export default function App() {
   } else if (route.name === 'add') {
     screen = (
       <AddScreen
-        symbols={bundledSymbols.items}
+        symbols={live.symbols.items}
         rank={rank}
         watched={watch.items}
         source={source}
@@ -198,9 +204,9 @@ export default function App() {
       <MarketScreen
         today={today}
         market={market}
-        universe={bundledUniverse}
+        universe={live.universe}
         watched={watch.items}
-        glossary={bundledContent.glossary}
+        glossary={live.content.glossary}
         onRetry={() => void loadMarket(true)}
         onOpen={(symbol) => {
           stockFrom.current = 'market';
@@ -238,8 +244,8 @@ export default function App() {
         info={symbolIndex.get(route.symbol)}
         cards={cards}
         watched={watch.items}
-        glossary={bundledContent.glossary}
-        disclaimer={bundledContent.disclaimer}
+        glossary={live.content.glossary}
+        disclaimer={live.content.disclaimer}
         from={stockFrom.current}
         onAdd={addOne}
         onRemove={(id) => removeItem(id, 'stock')}
@@ -248,7 +254,7 @@ export default function App() {
   } else {
     screen = (
       <SettingsScreen
-        content={bundledContent}
+        content={live.content}
         autoRefresh={settings.autoRefresh}
         onAutoRefresh={(autoRefresh) => updateSettings({ autoRefresh })}
         onOpenTerms={() => void openUrl(TERMS_URL)}

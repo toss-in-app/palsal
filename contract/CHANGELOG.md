@@ -1,5 +1,8 @@
 # palsal 계약 CHANGELOG
 
+## v1.8 — 2026-11-05 (5단계 ⑪ 정적 콘텐츠 원격 갱신)
+- `[client]` Storage 키 `palsal.static.v1:<symbols|universe|content>` 추가(선택) — 원격본의 그날 저장(물어본 날·ETag·본문). 번들로 바로 그리고, 하루 한 번 `If-None-Match` 로 물어 새 판이면 바꿔 끼움(byeol-today 와 같은 방식). contentVersion 이 번들보다 낮거나 minClientVersion 이 앱보다 높으면 안 씀. 실패는 data_error(endpoint symbols·universe·content).
+
 ## v1.7 — 2026-11-05 (5단계 ⑩ 분석 이벤트)
 - `[client]` 분석 이벤트 22개 연결(`client/src/lib/analytics.ts`, 화면 진입 4개는 log_type screen). 알림 랜딩을 `intoss://palsal?from=push` 로 — `home_view.from` 이 push 를 셀 수 있게(콘솔 템플릿 만들 때 이 주소로).
 

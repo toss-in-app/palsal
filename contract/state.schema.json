@@ -26,6 +26,9 @@
   "patternProperties": {
     "^palsal\\.bars\\.v1:[\\^]?[A-Z0-9.=\\-]{1,20}\\|(1d|1wk|1mo)$": {
       "$ref": "#/$defs/barsCache"
+    },
+    "^palsal\\.static\\.v1:(symbols|universe|content)$": {
+      "$ref": "#/$defs/staticCache"
     }
   },
   "$defs": {
@@ -321,6 +324,34 @@
               }
             }
           }
+        }
+      }
+    },
+    "staticCache": {
+      "description": "정적 파일 원격본(GitHub Pages)의 기기 저장본 — 그날 물어본 날짜(한국)·ETag·본문. 날이 바뀌면 ETag 로 다시 묻고(304 면 날짜만), 모양·minClientVersion 이 안 맞거나 contentVersion 이 번들보다 낮으면 쓰지 않는다. 본문 모양은 content.schema.json 의 각 파일",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fetchedOn",
+        "etag",
+        "data"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "fetchedOn": {
+          "$ref": "#/$defs/date"
+        },
+        "etag": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data": {
+          "type": "object"
         }
       }
     }
