@@ -3,16 +3,17 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { bundledContent } from '../content';
-import { SettingsScreen } from './SettingsScreen';
+import { SettingsScreen, type NotificationStatus } from './SettingsScreen';
 
-function renderSettings(autoRefresh = true) {
+function renderSettings(autoRefresh = true, status: NotificationStatus = null, available = true) {
+  const onNotification = vi.fn();
   const h = { onAutoRefresh: vi.fn(), onOpenTerms: vi.fn(), onOpenPrivacy: vi.fn() };
   render(
     <TDSMobileAITProvider brandPrimaryColor="#3182F6">
-      <SettingsScreen content={bundledContent} autoRefresh={autoRefresh} {...h} />
+      <SettingsScreen content={bundledContent} autoRefresh={autoRefresh} notification={{ available, status, onPress: onNotification }} {...h} />
     </TDSMobileAITProvider>,
   );
-  return h;
+  return { ...h, onNotification };
 }
 
 describe('SettingsScreen', () => {
@@ -42,5 +43,25 @@ describe('SettingsScreen', () => {
     expect(h.onOpenPrivacy).toHaveBeenCalled();
     expect(screen.getByText('코인 공포탐욕 · alternative.me')).toBeInTheDocument();
     expect(screen.getByText(bundledContent.disclaimer)).toBeInTheDocument();
+  });
+
+  it('매일 RSI 알림: 켜기 → 누르면 동의 요청, 받는 중 · 준비 중 · 미리 보기', () => {
+    const h = renderSettings(true, null, true);
+    expect(screen.getByText('켜기')).toBeInTheDocument();
+    expect(screen.getByLabelText('알림 미리 보기')).toHaveTextContent('RSI 확인');
+    fireEvent.click(screen.getByText('매일 RSI 알림'));
+    expect(h.onNotification).toHaveBeenCalled();
+  });
+
+  it('받는 중 / 준비 중', () => {
+    renderSettings(true, 'agreed', true);
+    expect(screen.getByText('받는 중')).toBeInTheDocument();
+  });
+
+  it('토스앱이 지원하지 않거나 템플릿이 없으면 준비 중', () => {
+    const h = renderSettings(true, null, false);
+    expect(screen.getByText('준비 중')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('매일 RSI 알림'));
+    expect(h.onNotification).not.toHaveBeenCalled();
   });
 });

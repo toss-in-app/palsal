@@ -5,6 +5,7 @@ import { TabBar } from './components/TabBar';
 import { activeNotice, bundledContent, bundledSymbols, bundledUniverse, PRIVACY_URL, symbolIndex, TERMS_URL } from './content';
 import { createMarketSource, type MarketSource } from './data';
 import { openUrl } from './lib/bridge';
+import { AGREEMENT_TOAST, notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { kstDateKey } from './lib/date';
 import { TABS, goBack, navigate, useRoute, type TabName } from './lib/router';
 import { rankIndex } from './lib/search';
@@ -83,6 +84,23 @@ export default function App() {
     [say],
   );
   const [homeEditing, setHomeEditing] = useState(false);
+  /**
+   * 매일 RSI 알림 동의(최근 바뀐 것 카드 · 설정 줄을 누른 뒤에만). 결과를 settings.notification 에 남겨요.
+   * 이미 받는 중이면 끄는 길(토스 앱 알림 설정)을 알려요 — SDK 로는 끌 수 없어요.
+   */
+  const askNotification = useCallback(async () => {
+    const prev = settings.notification;
+    if (prev.lastResult === 'agreed') {
+      say('알림은 토스 앱의 알림 설정에서 끌 수 있어요');
+      return;
+    }
+    const result = await requestNotificationAgreement();
+    const lastResult = result === 'agreed' || result === 'alreadyAgreed' ? 'agreed' : result === 'declined' ? 'declined' : result === 'unsupported' ? 'unsupported' : 'error';
+    // 거절하면 최근 바뀐 것 카드는 다시 띄우지 않아요(설정에서만)
+    updateSettings({ notification: { lastResult, promptDismissedAt: result === 'declined' ? Date.now() : prev.promptDismissedAt } });
+    say(AGREEMENT_TOAST[result]);
+  }, [settings.notification, say]);
+  const notificationReady = notificationAvailable();
   // 시장 탭에 들어갈 때마다(10분 넘게 지났으면) 다시 읽어요
   useEffect(() => {
     if (route.name === 'market' && source) void loadMarket();
@@ -161,7 +179,22 @@ export default function App() {
       />
     );
   } else if (route.name === 'changes') {
-    screen = <ChangesScreen today={today} items={changes} cards={cards} onOpen={openChange} />;
+    screen = (
+      <ChangesScreen
+        today={today}
+        items={changes}
+        cards={cards}
+        onOpen={openChange}
+        notificationCard={
+          notificationReady && watch.items.length > 0 && settings.notification.lastResult !== 'agreed' && settings.notification.promptDismissedAt === null
+            ? {
+                onAgree: () => void askNotification(),
+                onDismiss: () => updateSettings({ notification: { ...settings.notification, promptDismissedAt: Date.now() } }),
+              }
+            : undefined
+        }
+      />
+    );
   } else if (route.name === 'stock') {
     screen = (
       <StockScreen
@@ -185,6 +218,7 @@ export default function App() {
         onAutoRefresh={(autoRefresh) => updateSettings({ autoRefresh })}
         onOpenTerms={() => void openUrl(TERMS_URL)}
         onOpenPrivacy={() => void openUrl(PRIVACY_URL)}
+        notification={{ available: notificationReady, status: settings.notification.lastResult, onPress: () => void askNotification() }}
       />
     );
   }

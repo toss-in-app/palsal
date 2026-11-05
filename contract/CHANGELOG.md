@@ -1,5 +1,8 @@
 # palsal 계약 CHANGELOG
 
+## v1.5 — 2026-11-05 (5단계 ⑧ 알림 동의)
+- `[client]` 설정의 '매일 RSI 알림'을 스위치 → **상태 글자가 있는 줄**로(켜기·받는 중·받지 않음·준비 중). SDK 로는 동의를 끌 수 없어서(mandalartplan 경험). `events.md` 알림 절에 동의 받는 곳·문구·템플릿 코드(.env) 규칙.
+
 ## v1.4 — 2026-11-05 (5단계 ⑥ 시장 탭)
 - `market.schema.json` 제목·설명을 Supabase(`palsal_market.payload`)로 바로잡음(Worker 안의 흔적). 한국·미국 공포탐욕 공식은 클라 `lib/market.ts` `fearGreedScore` 와 같아야 한다고 적음 — 개발용 예시 데이터도 이 함수로 계산.
 - `content.json` glossary 에 `fear-greed`(공포탐욕지수 계산 방법) 추가 — 시장 탭 (i) 시트.
