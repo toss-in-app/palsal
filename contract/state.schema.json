@@ -18,7 +18,7 @@
   },
   "$defs": {
     "barsCache": {
-      "description": "종목·봉 단위 하나의 봉 데이터를 그날 하루 저장(키마다 따로 — 한 키가 너무 커지지 않게). day 가 오늘(거래소 현지)이 아니면 다시 받는다. 종목을 빼면 키도 지운다",
+      "description": "종목·봉 단위 하나의 봉 데이터를 그날 하루 저장(키마다 따로 — 한 키가 너무 커지지 않게). day = 서버가 봉을 다시 넣는 시각(한국 시간 — 국내 16:40 · 미국 07:10 · 코인 09:20 · 환율 01:00)이 가장 최근에 지난 날의 한국 날짜. 지금 계산한 day 와 다르면 다시 받는다. 종목을 빼면 키도 지운다",
       "type": "object",
       "additionalProperties": false,
       "required": ["version", "day", "fetchedAt", "t", "c", "l", "high5y"],
@@ -26,9 +26,9 @@
         "version": { "const": 1 },
         "day": { "$ref": "#/$defs/date" },
         "fetchedAt": { "$ref": "#/$defs/epochMs" },
-        "t": { "type": "array", "maxItems": 430, "items": { "type": "integer", "minimum": 0 } },
-        "c": { "type": "array", "maxItems": 430, "items": { "type": "number", "exclusiveMinimum": 0 } },
-        "l": { "type": "array", "maxItems": 430, "items": { "type": "number", "exclusiveMinimum": 0 } },
+        "t": { "type": "array", "maxItems": 530, "items": { "type": "integer", "minimum": 0 } },
+        "c": { "type": "array", "maxItems": 530, "items": { "type": "number", "exclusiveMinimum": 0 } },
+        "l": { "type": "array", "maxItems": 530, "items": { "type": "number", "exclusiveMinimum": 0 } },
         "high5y": { "type": "number", "exclusiveMinimum": 0 }
       }
     },

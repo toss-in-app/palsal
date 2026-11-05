@@ -45,6 +45,18 @@ export async function writeItem(key: string, value: string): Promise<void> {
   }
 }
 
+export async function removeItem(key: string): Promise<void> {
+  try {
+    await withTimeout(Storage.removeItem(key), BRIDGE_TIMEOUT_MS);
+  } catch {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* 무시 */
+    }
+  }
+}
+
 /** JSON 으로 읽어요. 없거나 깨졌으면 null */
 export async function readJson(key: string): Promise<unknown> {
   const raw = await readItem(key);

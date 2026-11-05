@@ -35,7 +35,7 @@ create table if not exists public.palsal_bars (
   high5y double precision not null check (high5y > 0),
   updated_at timestamptz not null,
   check (key = symbol || '|' || interval),
-  check (cardinality(t) between 1 and 430 and cardinality(c) = cardinality(t) and cardinality(l) = cardinality(t))
+  check (cardinality(t) between 1 and 530 and cardinality(c) = cardinality(t) and cardinality(l) = cardinality(t))
 );
 
 create table if not exists public.palsal_market (

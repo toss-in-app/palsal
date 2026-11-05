@@ -37,7 +37,7 @@ Postgres 표: palsal_quotes · palsal_bars · palsal_market · palsal_demand
 | 작업 | 언제 | 하는 일 | 야후 요청 |
 |------|------|---------|-----------|
 | `tick` | **5분마다** | 장이 열린 시장의 추적 종목 현재가: 한국 09:00–15:30 KST · 미국 04:00–20:00 ET(프리·정규·애프터) 평일 · 코인 늘 · 환율 안 함. 야후 spark **20종목씩 묶어서**, 코인은 바이낸스 `ticker/24hr?symbols=[…]` 한 번 → `palsal_quotes` upsert | 추적 300이면 5분에 15 |
-| `daily` | 한국 장 마감 뒤 16:10 KST · 미국 장 마감 뒤 06:30 KST 부터 5분마다 30종목씩 | 일봉(`chart?interval=1d&range=5y`) → 종가·저가 마지막 430개 + 5년 최고가 · 주봉(`1wk`, 10y) · 월봉(`1mo`, max) → `palsal_bars` upsert. 환율은 Frankfurter 하루 1회 | 하루 종목 수 × 담긴 봉 단위 수 |
+| `daily` | 한국 장 마감 뒤 16:10 KST · 미국 장 마감 뒤 06:30 KST 부터 5분마다 30종목씩 | 일봉(`chart?interval=1d&range=5y`) → 종가·저가 마지막 530개 + 5년 최고가(그 봉 단위 종가의 5년 최댓값) · 주봉(`1wk`, 10y) · 월봉(`1mo`, max) → `palsal_bars` upsert. 환율은 Frankfurter 하루 1회 | 하루 종목 수 × 담긴 봉 단위 수 |
 | `market` | 장중 30분마다 + 마감 뒤 1회 | 시총 상위 60 일봉 RSI(14)·종가·등락, RSI ≤ 30 목록, 공포탐욕(한국 `^KS11` · 미국 `SPY` = RSI × 0.6 + 120일선 위치 × 0.4 / 코인 alternative.me 하루 1회) → `palsal_market` | 0(저장된 봉 + 현재가로 계산) |
 | `new` | RPC 가 부를 때 | 처음 보는 종목(최대 12)의 현재가·봉 즉시 | 종목 수만큼 |
 
@@ -57,7 +57,7 @@ create table palsal_bars (
   key text primary key,                       -- 'symbol|interval'
   symbol text not null, interval text not null check (interval in ('1d','1wk','1mo')),
   currency text not null, tz text not null, source text not null,
-  t bigint[] not null, c double precision[] not null, l double precision[] not null,   -- 같은 길이, 최대 430
+  t bigint[] not null, c double precision[] not null, l double precision[] not null,   -- 같은 길이, 최대 530(180봉 화면에 코인 50주선 350일을 끝까지 그릴 만큼)
   high5y double precision not null,
   updated_at timestamptz not null
 );
@@ -70,6 +70,8 @@ create table palsal_demand (
 ```
 - 봉은 **종가·저가만**(시가·고가는 화면에 안 씀 — △ 장중 30 아래 계산에 저가만 필요). 용량·전송량이 절반.
 - 휴대폰이 받는 모양 = 위 열 그대로(PostgREST JSON). 스키마 `quotes.schema.json` · `bars.schema.json` · `market.schema.json`(= `palsal_market.payload`).
+
+- 휴대폰은 봉을 **서버가 다시 넣는 시각이 지난 뒤 처음 볼 때만** 받는다: 한국 16:40 · 미국 07:10 · 코인 09:20 · 환율 01:00(모두 한국 시간, `daily` 가 끝날 즈음). 그 전엔 기기 저장본 + 현재가로 마지막 봉을 고쳐 쓴다. `daily` 가 이 시각보다 오래 걸리면 휴대폰 시각을 함께 늦춘다(클라 `state/cards.ts` BARS_READY_KST).
 
 ## 휴대폰이 읽는 법
 | 언제 | 요청 | 크기 |

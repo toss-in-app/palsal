@@ -16,10 +16,10 @@
       "currency": { "enum": ["KRW", "USD", "JPY"] },
       "tz": { "enum": ["Asia/Seoul", "America/New_York", "UTC"] },
       "source": { "enum": ["yahoo", "binance", "frankfurter"] },
-      "t": { "type": "array", "minItems": 1, "maxItems": 430, "items": { "type": "integer", "minimum": 0 }, "description": "봉 시작 epoch 초(UTC)" },
-      "c": { "type": "array", "minItems": 1, "maxItems": 430, "items": { "type": "number", "exclusiveMinimum": 0 } },
-      "l": { "type": "array", "minItems": 1, "maxItems": 430, "items": { "type": "number", "exclusiveMinimum": 0 } },
-      "high5y": { "type": "number", "exclusiveMinimum": 0, "description": "최근 5년(상장 5년 미만이면 상장 뒤) 일봉 고가의 최댓값" },
+      "t": { "type": "array", "minItems": 1, "maxItems": 530, "items": { "type": "integer", "minimum": 0 }, "description": "봉 시작 epoch 초(UTC)" },
+      "c": { "type": "array", "minItems": 1, "maxItems": 530, "items": { "type": "number", "exclusiveMinimum": 0 } },
+      "l": { "type": "array", "minItems": 1, "maxItems": 530, "items": { "type": "number", "exclusiveMinimum": 0 } },
+      "high5y": { "type": "number", "exclusiveMinimum": 0, "description": "이 봉 단위 종가의 최근 5년(상장 5년 미만이면 상장 뒤) 최댓값 — 원본과 같게 고가가 아니라 종가. 현재가가 이 값 이상이면 '5년 최고가를 새로 썼어요'" },
       "updated_at": { "type": "string", "format": "date-time" }
     }
   }

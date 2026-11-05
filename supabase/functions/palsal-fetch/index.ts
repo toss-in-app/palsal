@@ -3,7 +3,7 @@
 //
 // 모드
 //   tick   — 5분마다. 장이 열린 시장의 추적 종목 현재가(야후 spark 20종목씩 · 바이낸스 ticker 묶음) → palsal_quotes
-//   daily  — 장 마감 뒤. 봉(종가·저가 430개 + 5년 최고가, 30종목씩) → palsal_bars. 환율은 Frankfurter
+//   daily  — 장 마감 뒤. 봉(종가·저가 530개 + 그 봉 단위 종가의 5년 최댓값, 30종목씩) → palsal_bars. 환율은 Frankfurter
 //   market — 30분마다. 시총 상위 60 RSI · 30 아래 목록 · 공포탐욕 3 → palsal_market
 //   new    — palsal_track 이 부를 때. 처음 보는 종목(최대 12) 현재가·봉 즉시
 //
