@@ -14,13 +14,29 @@ import { symbolIndex, type ContentFile, type UniverseFile } from '../content';
 import type { FearGreed, MarketPayload, MarketRow } from '../data/types';
 import { formatDateLabel } from '../lib/date';
 import { formatKstTime, formatPct, formatRsi, INTERVAL_LABEL } from '../lib/format';
-import { zoneOf } from '../lib/indicators';
+import { LOW_LINE, zoneOf } from '../lib/indicators';
 import { changeColor, PAGE_BG, zoneInk } from '../lib/palette';
 import type { Interval } from '../lib/series';
 import type { MarketState } from '../state/market';
 import type { WatchItem } from '../state/watch';
 
 const INTERVALS: Interval[] = ['1d', '1wk', '1mo'];
+
+/** 'RSI 30 아래' 버튼(시험자 필귀 2026-11-06 "미장 국장 코인 버튼 있어서 종류별로") */
+type Side = 'kr' | 'us' | 'crypto';
+type LowTab = 'all' | Side;
+const SIDE_LABEL: Record<Side, string> = { kr: '한국', us: '미국', crypto: '코인' };
+const EMPTY_TEXT: Record<LowTab, string> = {
+  all: '지금은 RSI 30 아래인 큰 종목이 없어요',
+  kr: '지금은 RSI 30 아래인 한국 큰 종목이 없어요',
+  us: '지금은 RSI 30 아래인 미국 큰 종목이 없어요',
+  crypto: '지금은 RSI 30 아래인 코인이 없어요',
+};
+
+/** 일봉 RSI 30 이하, 낮은 순 */
+function lowOf(rows: MarketRow[]): MarketRow[] {
+  return rows.filter((r) => r.rsi !== null && r.rsi <= LOW_LINE).sort((a, b) => (a.rsi as number) - (b.rsi as number));
+}
 
 export interface MarketScreenProps {
   today: string;
@@ -104,6 +120,7 @@ function RsiTrack({ rsi }: { rsi: number }) {
 /** 시장(탭 2, 흐름 문서 'market'): 공포탐욕 3 · 지금 RSI 30 아래인 큰 종목 · 시가총액 순위 */
 export function MarketScreen({ today, market, universe, watched, glossary, onRetry, onOpen, onAdd }: MarketScreenProps) {
   const [rankTab, setRankTab] = useState<'kr' | 'us'>('kr');
+  const [lowTab, setLowTab] = useState<LowTab>('all');
   const [term, setTerm] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
   const [shownAdding, setShownAdding] = useState<string | null>(null);
@@ -116,17 +133,29 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
     const d = market.data;
     if (!d || viewed.current) return;
     viewed.current = true;
-    const kr = new Set(d.universe.kr.map((r) => r.symbol));
-    const krLow = d.low.filter((s) => kr.has(s)).length;
-    logEvent('market_view', { kr_low: krLow, us_low: d.low.length - krLow });
+    logEvent('market_view', { kr_low: lowOf(d.universe.kr).length, us_low: lowOf(d.universe.us).length, crypto_low: lowOf(d.universe.crypto ?? []).length });
   }, [market.data]);
 
   const data = market.data;
-  const rows = data ? [...data.universe.kr, ...data.universe.us] : [];
-  const bySymbol = new Map(rows.map((r) => [r.symbol, r] as const));
-  const marketOfSymbol = (s: string) => (data?.universe.kr.some((r) => r.symbol === s) ? '한국' : '미국');
+  const groups: Record<Side, MarketRow[]> = { kr: data?.universe.kr ?? [], us: data?.universe.us ?? [], crypto: data?.universe.crypto ?? [] };
+  const sideOf = new Map<string, Side>((['kr', 'us', 'crypto'] as Side[]).flatMap((side) => groups[side].map((r) => [r.symbol, side] as const)));
+  const lows: Record<LowTab, MarketRow[]> = {
+    all: lowOf([...groups.kr, ...groups.us, ...groups.crypto]),
+    kr: lowOf(groups.kr),
+    us: lowOf(groups.us),
+    crypto: lowOf(groups.crypto),
+  };
+  // 서버가 아직 코인 줄을 안 넣었으면(예전 계산) 코인 버튼은 숨겨요
+  const tabs: LowTab[] = groups.crypto.length ? ['all', 'kr', 'us', 'crypto'] : ['all', 'kr', 'us'];
+  const shownLow = lows[lowTab];
   const isWatched = (s: string) => watched.some((w) => w.symbol === s);
-  const total = rows.length;
+  const stockTotal = groups.kr.length + groups.us.length;
+  const lowNote = {
+    all: groups.crypto.length ? `한국·미국 시총 상위 ${stockTotal}개 · 코인 ${groups.crypto.length}개 중` : `한국·미국 시가총액 상위 ${stockTotal}개 중`,
+    kr: `한국 시가총액 상위 ${groups.kr.length}개 중`,
+    us: `미국 시가총액 상위 ${groups.us.length}개 중`,
+    crypto: `주요 코인 ${groups.crypto.length}개 중`,
+  }[lowTab];
   const rank: MarketRow[] = data ? data.universe[rankTab].slice(0, 15) : [];
   const asOf = universe.asOfDate;
 
@@ -158,13 +187,21 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                 지금 RSI 30 아래인 큰 종목
               </Text>
               <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2 }}>
-                {`한국·미국 시가총액 상위 ${total}개 중 · 일봉 RSI 14`}
+                {`${lowNote} · 일봉 RSI 14`}
               </Text>
             </div>
-            {data.low.length ? (
+            <div role="group" aria-label="시장 고르기" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '6px 20px 6px' }}>
+              {tabs.map((t) => (
+                <Pill key={t} on={lowTab === t} onClick={() => setLowTab(t)}>
+                  {`${t === 'all' ? '전체' : SIDE_LABEL[t]} ${lows[t].length}`}
+                </Pill>
+              ))}
+            </div>
+            {shownLow.length ? (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {data.low.map((s) => {
-                  const r = bySymbol.get(s);
+                {shownLow.map((r) => {
+                  const s = r.symbol;
+                  const side = sideOf.get(s);
                   const done = isWatched(s);
                   return (
                     <li key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0 20px', minHeight: 60 }}>
@@ -173,7 +210,8 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                           {nameOf(s)}
                         </Text>
                         <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                          {`${marketOfSymbol(s)}${r?.rsi !== null && r?.rsi !== undefined ? ` · RSI ${formatRsi(r.rsi)}` : ''}`}
+                          {/* 한 시장만 볼 때는 시장 이름을 되풀이하지 않아요 */}
+                          {`${lowTab === 'all' && side ? `${SIDE_LABEL[side]} · ` : ''}RSI ${formatRsi(r.rsi as number)}`}
                         </Text>
                       </button>
                       <Button size="small" variant="weak" disabled={done} onClick={() => setAdding(s)}>
@@ -185,7 +223,7 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
               </ul>
             ) : (
               <Text display="block" typography="t7" color={colors.grey600} style={{ padding: '10px 20px 12px' }}>
-                지금은 RSI 30 아래인 큰 종목이 없어요
+                {EMPTY_TEXT[lowTab]}
               </Text>
             )}
           </section>

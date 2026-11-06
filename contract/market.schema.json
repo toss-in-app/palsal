@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://toss-in-app.github.io/palsal/contract/market.schema.json",
   "title": "palsal 시장 v1 (GET /rest/v1/palsal_market?id=eq.1 → payload)",
-  "description": "서버 market 작업(장중 30분마다)이 palsal_market.payload 에 넣는 값. 시총 상위 한국·미국 각 최대 30(순서 = universe.json 의 시총 순)의 일봉 RSI(14)와 공포탐욕 3개. 한국·미국 공포탐욕 = RSI × 0.6 + 120일선 위치 × 0.4(클라 lib/market.ts fearGreedScore 와 같은 공식). label·basis·attribution 은 화면에 그대로 쓰는 완성 문자열.",
+  "description": "서버 market 작업(장중 30분마다)이 palsal_market.payload 에 넣는 값. 시총 상위 한국·미국 각 최대 30(순서 = universe.json 의 시총 순)과 주요 코인(universe.crypto, v1.15)의 일봉 RSI(14)와 공포탐욕 3개. 한국·미국 공포탐욕 = RSI × 0.6 + 120일선 위치 × 0.4(클라 lib/market.ts fearGreedScore 와 같은 공식). label·basis·attribution 은 화면에 그대로 쓰는 완성 문자열.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -93,11 +93,19 @@
           "items": {
             "$ref": "#/$defs/row"
           }
+        },
+        "crypto": {
+          "description": "주요 코인 일봉 RSI(v1.15, universe.json crypto 순서). 예전 앱은 이 칸을 무시해요",
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/$defs/row"
+          }
         }
       }
     },
     "low": {
-      "description": "universe 중 일봉 RSI ≤ 30 인 심볼, RSI 낮은 순",
+      "description": "universe 의 한국·미국 중 일봉 RSI ≤ 30 인 심볼, RSI 낮은 순. 코인은 넣지 않아요(예전 앱이 universe 한국 밖을 '미국'으로 보여서) — 새 앱은 universe 각 줄의 rsi 로 한국·미국·코인을 직접 골라요",
       "type": "array",
       "maxItems": 60,
       "items": {

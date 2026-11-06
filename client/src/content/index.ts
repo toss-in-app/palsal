@@ -39,6 +39,8 @@ export interface UniverseFile {
   asOfDate: string;
   kr: string[];
   us: string[];
+  /** 주요 코인(v1.15) — 시장 탭 '코인' 버튼 */
+  crypto?: string[];
 }
 
 export type ZoneKey = 'vlow' | 'low' | 'mid' | 'high';
@@ -106,7 +108,7 @@ export function isSymbolsFile(v: unknown, appVersion: string): v is SymbolsFile 
 export function isUniverseFile(v: unknown): v is UniverseFile {
   if (!isObj(v) || v.kind !== 'universe' || !VERSION.test(String(v.contentVersion)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(v.asOfDate))) return false;
   const list = (x: unknown) => Array.isArray(x) && x.length >= 1 && x.length <= 30 && x.every((s) => SYMBOL.test(String(s)));
-  return list(v.kr) && list(v.us);
+  return list(v.kr) && list(v.us) && (v.crypto === undefined || list(v.crypto));
 }
 
 export function isContentFile(v: unknown, appVersion: string): v is ContentFile {

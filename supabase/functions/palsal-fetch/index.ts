@@ -6,9 +6,9 @@
  *   tick   — 장이 열린 시장의 추적 종목 현재가(야후 spark 20종목씩 — 주식·지수·환율 · 바이낸스 묶음) → palsal_quotes
  *   daily  — 봉이 새로 나온 시장(한국 16:10 KST · 미국 16:30 ET · 코인 00:05 UTC · 환율 00:20 런던 뒤)의 오래된 봉부터
  *            한 번에 DAILY_PER_RUN 개(종목×봉 단위) → palsal_bars
- *   market — 시총 상위 60 일봉 RSI · 30 아래 목록 · 공포탐욕 3 → palsal_market (손으로 부르면 바로 다시 계산)
+ *   market — 시총 상위 60 · 주요 코인 6 일봉 RSI · 30 아래 목록 · 공포탐욕 3 → palsal_market (손으로 부르면 바로 다시 계산)
  *   new    — palsal_track 이 부를 때(body {symbols}). 처음 보는 종목(최대 12) 현재가·봉 즉시
- * 추적 = universe 60 + 처음 연 날 예시 4 + 코스피 지수(공포탐욕) + 최근 DEMAND_DAYS 안에 휴대폰이 읽은 종목.
+ * 추적 = universe 66(한국·미국 60 + 코인 6) + 처음 연 날 예시 4 + 코스피 지수(공포탐욕) + 최근 DEMAND_DAYS 안에 휴대폰이 읽은 종목.
  * 부르는 쪽(cron·palsal_track)은 Authorization: Bearer <PALSAL_CRON_KEY> — 다른 요청은 401.
  */
 import { fearGreedLabel, fearGreedScore, headlineRsi, lastRsi, marketOfSymbol, withQuote, type ExchangeTz, type Interval, type Market, type MarketState } from '../_shared/calc.ts';
@@ -93,7 +93,7 @@ function readyAt(market: Market, now: number): number {
 // ---------------------------------------------------------------- 추적 종목
 
 interface UniverseRow {
-  side: 'kr' | 'us';
+  side: 'kr' | 'us' | 'crypto';
   rank: number;
   symbol: string;
   version: string;
@@ -267,6 +267,8 @@ async function market(now: number, states: Map<string, FetchState>, log: Log, fo
   };
   const kr = u.filter((r) => r.side === 'kr').map(rowOf);
   const us = u.filter((r) => r.side === 'us').map(rowOf);
+  // 주요 코인(v1.15): 시장 탭 '코인' 버튼용. low 에는 넣지 않아요 — 예전 앱은 한국 밖을 '미국'으로 보여서
+  const coins = u.filter((r) => r.side === 'crypto').map(rowOf);
   const low = [...kr, ...us]
     .filter((r) => r.rsi !== null && r.rsi <= 30)
     .sort((a, b) => (a.rsi as number) - (b.rsi as number))
@@ -276,7 +278,8 @@ async function market(now: number, states: Map<string, FetchState>, log: Log, fo
     return score === null ? { score: 50, label: fearGreedLabel(50), basis: '값을 아직 계산하지 못했어요' } : { score, label: fearGreedLabel(score), basis };
   };
   const crypto = await cryptoFg(states, now, log);
-  const fetched = quotes.filter((q) => u.some((r) => r.symbol === q.symbol)).map((q) => Date.parse(q.fetched_at));
+  // 기준 시각은 주식 현재가로(코인은 주말에도 받아서 넣으면 '오래됨'을 못 알아채요)
+  const fetched = quotes.filter((q) => u.some((r) => r.symbol === q.symbol && r.side !== 'crypto')).map((q) => Date.parse(q.fetched_at));
   const asOf = fetched.length ? Math.max(...fetched) : now;
   const payload = {
     schema: 1,
@@ -291,11 +294,11 @@ async function market(now: number, states: Map<string, FetchState>, log: Log, fo
         ? { score: crypto.score, label: fearGreedLabel(crypto.score), basis: 'alternative.me 코인 공포탐욕지수', attribution: '출처 alternative.me', sourceDate: crypto.date }
         : { score: 50, label: fearGreedLabel(50), basis: '코인 공포탐욕을 아직 받지 못했어요', attribution: '출처 alternative.me', sourceDate: iso(now).slice(0, 10) },
     },
-    universe: { kr, us },
+    universe: coins.length ? { kr, us, crypto: coins } : { kr, us },
     low,
   };
   await upsert('palsal_market', [{ id: 1, payload, computed_at: iso(now) }], 'id');
-  log.market = { kr: kr.length, us: us.length, low: low.length, withRsi: [...kr, ...us].filter((r) => r.rsi !== null).length };
+  log.market = { kr: kr.length, us: us.length, crypto: coins.length, low: low.length, withRsi: [...kr, ...us, ...coins].filter((r) => r.rsi !== null).length };
 }
 
 // ---------------------------------------------------------------- new

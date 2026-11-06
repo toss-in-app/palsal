@@ -60,7 +60,7 @@ create table if not exists public.palsal_demand (
 
 -- 시장 탭 시총 상위(static/universe.json 을 옮겨 둔 것, scripts/server-seed.mjs 가 채움)
 create table if not exists public.palsal_universe (
-  side text not null check (side in ('kr', 'us')),
+  side text not null check (side in ('kr', 'us', 'crypto')),
   rank int not null check (rank between 1 and 30),
   symbol text not null references public.palsal_symbols (symbol),
   version text not null,
@@ -83,6 +83,9 @@ alter table public.palsal_market enable row level security;
 alter table public.palsal_demand enable row level security;
 alter table public.palsal_fetch_state enable row level security;
 alter table public.palsal_universe enable row level security;
+-- v1.15: 주요 코인(side 'crypto') — 이미 만든 표의 check 도 바꿔요(여러 번 돌려도 같게)
+alter table public.palsal_universe drop constraint if exists palsal_universe_side_check;
+alter table public.palsal_universe add constraint palsal_universe_side_check check (side in ('kr', 'us', 'crypto'));
 
 drop policy if exists palsal_quotes_read on public.palsal_quotes;
 create policy palsal_quotes_read on public.palsal_quotes for select to anon, authenticated using (true);

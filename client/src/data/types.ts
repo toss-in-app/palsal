@@ -143,8 +143,9 @@ export interface MarketPayload {
   stale: boolean;
   universeVersion: string;
   fearGreed: { kr: FearGreed; us: FearGreed; crypto: FearGreed };
-  universe: { kr: MarketRow[]; us: MarketRow[] };
-  /** universe 중 일봉 RSI ≤ 30, RSI 낮은 순 */
+  /** crypto = 주요 코인(v1.15, 서버가 아직 안 넣었으면 없음) */
+  universe: { kr: MarketRow[]; us: MarketRow[]; crypto?: MarketRow[] };
+  /** universe 의 한국·미국 중 일봉 RSI ≤ 30, RSI 낮은 순(코인은 없음 — 화면은 universe 줄로 직접 골라요) */
   low: string[];
 }
 
@@ -168,6 +169,7 @@ export function asMarketPayload(v: unknown): MarketPayload | null {
   const uni = v.universe;
   if (!isObj(fg) || !isFearGreed(fg.kr) || !isFearGreed(fg.us) || !isFearGreed(fg.crypto)) return null;
   if (!isObj(uni) || !Array.isArray(uni.kr) || !Array.isArray(uni.us) || !uni.kr.every(isRow) || !uni.us.every(isRow)) return null;
+  if (uni.crypto !== undefined && !(Array.isArray(uni.crypto) && uni.crypto.every(isRow))) return null;
   if (!Array.isArray(v.low) || !v.low.every((s) => typeof s === 'string' && SYMBOL_RE.test(s))) return null;
   return v as unknown as MarketPayload;
 }

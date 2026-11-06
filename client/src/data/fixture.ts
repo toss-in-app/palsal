@@ -200,6 +200,7 @@ function makeMarket(now: number): MarketPayload {
   };
   const kr = bundledUniverse.kr.map(row);
   const us = bundledUniverse.us.map(row);
+  const coins = (bundledUniverse.crypto ?? []).map(row);
   const low = [...kr, ...us]
     .filter((r) => r.rsi !== null && r.rsi <= 30)
     .sort((a, b) => a.rsi! - b.rsi!)
@@ -221,7 +222,7 @@ function makeMarket(now: number): MarketPayload {
       us: fg('SPY', 'SPY RSI와 120일선 위치'),
       crypto: { score: crypto, label: fearGreedLabel(crypto), basis: 'alternative.me 코인 공포탐욕지수', attribution: '출처 alternative.me', sourceDate: day },
     },
-    universe: { kr, us },
+    universe: { kr, us, crypto: coins },
     low,
   };
 }

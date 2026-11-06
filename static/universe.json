@@ -1,7 +1,7 @@
 {
  "kind": "universe",
  "schema": 1,
- "contentVersion": "2026-11-05.1",
+ "contentVersion": "2026-11-06.1",
  "asOfDate": "2026-11-05",
  "kr": [
   "005930.KS",
@@ -66,5 +66,13 @@
   "MRK",
   "UNH",
   "BAC"
+ ],
+ "crypto": [
+  "BTC-USD",
+  "ETH-USD",
+  "XRP-USD",
+  "SOL-USD",
+  "DOGE-USD",
+  "ADA-USD"
  ]
 }

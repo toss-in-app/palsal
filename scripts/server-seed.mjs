@@ -22,8 +22,8 @@ for (let i = 0; i < symbols.items.length; i += 1000) {
 }
 const known = new Set(symbols.items.map((it) => it.s));
 const uni = [];
-for (const side of ['kr', 'us']) {
-  universe[side].forEach((s, i) => {
+for (const side of ['kr', 'us', 'crypto']) {
+  (universe[side] ?? []).forEach((s, i) => {
     if (!known.has(s)) throw new Error(`universe 의 ${s} 가 종목 목록에 없어요`);
     uni.push(`('${side}',${i + 1},${q(s)},'${universe.contentVersion.replace(/[^0-9.-]/g, '')}')`);
   });

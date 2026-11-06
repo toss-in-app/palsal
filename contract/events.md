@@ -21,7 +21,7 @@
 | `watch_remove` | 빼기(편집 모드·자세히) | `count`(뺀 뒤 전체), `from`(edit/stock) |
 | `watch_reorder` | 편집에서 순서를 바꾸고 완료 | - |
 | `filter_change` | 칩(전체·30 아래·70 위) | `filter` |
-| `market_view` | 시장 탭 | `kr_low`·`us_low`(30 아래 수) |
+| `market_view` | 시장 탭 | `kr_low`·`us_low`·`crypto_low`(30 아래 수, crypto_low 는 2026-11-06 추가) |
 | `market_add` | 시장에서 담기 | `from`(low/rank), `market` |
 | `refresh` | 새로고침 결과 | `trigger`(manual/auto/open), `result`(ok/stale/error) |
 | `toast_signal` | 보는 동안 구간 진입 토스트 | `kind`(low/high/summary) |

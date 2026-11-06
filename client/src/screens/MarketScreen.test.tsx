@@ -1,5 +1,5 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { bundledContent, bundledUniverse } from '../content';
@@ -38,6 +38,42 @@ function renderMarket(market: MarketState, watched: WatchItem[] = []) {
   );
   return h;
 }
+
+describe('시장 고르기(전체 · 한국 · 미국 · 코인)', () => {
+  const withCoins: MarketPayload = {
+    ...payload,
+    universe: {
+      ...payload.universe,
+      crypto: [
+        { symbol: 'BTC-USD', rank: 1, rsi: 25.1, close: 104820, changePct: -3.2 },
+        { symbol: 'ETH-USD', rank: 2, rsi: 44.0, close: 3521.4, changePct: -1.1 },
+      ],
+    },
+  };
+
+  it('버튼마다 그 시장의 30 아래만, 한 시장일 때는 시장 이름을 되풀이하지 않아요', () => {
+    renderMarket({ status: 'ready', data: withCoins, fetchedAt: 1 });
+    // 전체: 한국 · 코인이 RSI 낮은 순으로
+    const all = screen.getAllByText(/ · RSI /).map((el) => el.textContent);
+    expect(all).toEqual(['코인 · RSI 25.1', '한국 · RSI 27.4']);
+    expect(screen.getByText('한국·미국 시총 상위 3개 · 코인 2개 중 · 일봉 RSI 14')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '코인 1' }));
+    expect(screen.getByText('비트코인')).toBeInTheDocument();
+    expect(screen.getByText('RSI 25.1')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: '지금 RSI 30 아래인 큰 종목' })).queryByText('SK하이닉스')).not.toBeInTheDocument();
+    expect(screen.getByText('주요 코인 2개 중 · 일봉 RSI 14')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '미국 0' }));
+    expect(screen.getByText('지금은 RSI 30 아래인 미국 큰 종목이 없어요')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '미국 0' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('서버가 아직 코인 줄을 안 넣었으면 코인 버튼은 없어요', () => {
+    renderMarket({ status: 'ready', data: payload, fetchedAt: 1 });
+    expect(screen.getByRole('button', { name: '전체 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^코인/ })).not.toBeInTheDocument();
+    expect(screen.getByText('한국·미국 시가총액 상위 3개 중 · 일봉 RSI 14')).toBeInTheDocument();
+  });
+});
 
 describe('MarketScreen', () => {
   it('공포탐욕 3 · 30 아래 · 순위 · 기준 시각', () => {
