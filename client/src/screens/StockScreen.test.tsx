@@ -1,13 +1,15 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { bundledContent, symbolIndex } from '../content';
 import { formatPrice, formatRsi } from '../lib/format';
 import { rsiSeries } from '../lib/indicators';
+import { HOLD_MS } from '../lib/useChartGestures';
 import { analyze, type Bars } from '../lib/series';
 import type { QuoteRow } from '../data/types';
 import type { CardsState } from '../state/cards';
+import { defaultSettings, settingsStore } from '../state/settings';
 import type { WatchItem } from '../state/watch';
 import { StockScreen } from './StockScreen';
 
@@ -90,6 +92,7 @@ describe('StockScreen', () => {
 });
 
 describe('차트를 그 자리에서(들어가는 화면 없이)', () => {
+  beforeEach(() => settingsStore.set(defaultSettings()));
   const hint = /옆으로 밀면 지난 봉/;
   const chart = () => screen.getByRole('img', { name: /카카오 일봉 차트/ });
   const close = (i: number) => 50000 + 8000 * Math.sin(i / 25) - i * 20;
@@ -98,20 +101,39 @@ describe('차트를 그 자리에서(들어가는 화면 없이)', () => {
     fireEvent.pointerUp(chart(), { pointerId: 1, pointerType: 'touch', clientX, clientY: 100, button: 0 });
   };
 
-  it('자세히 화면에 바로 — 누르면 그 봉 값이 위 가격 · RSI 자리에, 같은 자리를 한 번 더 누르면 최신', () => {
-    const depth = window.history.length;
-    renderStock();
-    expect(screen.getByText(hint)).toBeInTheDocument();
-    tap(2); // 그래프 왼쪽 끝 = 보이는 첫 봉(141번째 날, 2025-07-21)
-    expect(screen.getByText('2025년 7월 21일')).toBeInTheDocument();
-    expect(screen.getByText(formatPrice(close(140), 'KRW'))).toBeInTheDocument();
-    const rsi140 = rsiSeries(Array.from({ length: 320 }, (_, i) => close(i)))[140]!;
-    expect(screen.getByText(formatRsi(rsi140))).toBeInTheDocument();
-    // 화면을 쌓지 않아요(뒤로가기 한 번이면 이전 화면)
-    expect(window.history.length).toBe(depth);
-    tap(2);
-    expect(screen.queryByText('2025년 7월 21일')).not.toBeInTheDocument();
-    expect(screen.getByText(formatPrice(close(319), 'KRW'))).toBeInTheDocument();
+  it('짧게 누르면 아무것도 안 바뀌고, 누르고 있으면 그 봉 값이 위 가격 · RSI 자리에, 떼면 원래대로', () => {
+    vi.useFakeTimers();
+    try {
+      const depth = window.history.length;
+      renderStock();
+      expect(screen.getByText(hint)).toBeInTheDocument();
+      const latest = formatPrice(close(319), 'KRW');
+      tap(2);
+      act(() => vi.advanceTimersByTime(50));
+      expect(screen.getByText(latest)).toBeInTheDocument();
+      expect(screen.queryByText('2025년 7월 21일')).not.toBeInTheDocument();
+      // 누르고 있기(320ms) → 그래프 왼쪽 끝 = 보이는 첫 봉(141번째 날, 2025-07-21)
+      fireEvent.pointerDown(chart(), { pointerId: 1, pointerType: 'touch', clientX: 2, clientY: 100, button: 0 });
+      act(() => vi.advanceTimersByTime(HOLD_MS + 10));
+      expect(screen.getByText('2025년 7월 21일')).toBeInTheDocument();
+      expect(screen.getByText(formatPrice(close(140), 'KRW'))).toBeInTheDocument();
+      const rsi140 = rsiSeries(Array.from({ length: 320 }, (_, i) => close(i)))[140]!;
+      expect(screen.getByText(formatRsi(rsi140))).toBeInTheDocument();
+      // 평소 줄들은 자리를 지킨 채 숨겨져요(높이 그대로)
+      expect(screen.getByText(/5년 최고가/).closest('[aria-hidden="true"]')).not.toBeNull();
+      fireEvent.pointerUp(chart(), { pointerId: 1, pointerType: 'touch', clientX: 2, clientY: 100, button: 0 });
+      expect(screen.queryByText('2025년 7월 21일')).not.toBeInTheDocument();
+      expect(screen.getByText(latest)).toBeInTheDocument();
+      // 화면을 쌓지 않아요(뒤로가기 한 번이면 이전 화면)
+      expect(window.history.length).toBe(depth);
+      // 한 번 써 봤으니 다음에 열면 안내가 없어요
+      expect(settingsStore.get().chartUsedAt).not.toBeNull();
+      cleanup();
+      renderStock();
+      expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('확대·축소 단추 · 키보드로 보이는 봉 수와 구간이 바뀌고, 지난 봉이면 최근으로', () => {

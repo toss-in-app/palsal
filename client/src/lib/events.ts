@@ -23,9 +23,11 @@ export interface StockEvent {
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
 export const EVENTS_MAX = 8;
+/** '소식'은 최근 1년 안의 일만(주봉·월봉은 화면 봉이 몇 해를 덮어서 2년 전 일까지 '소식'으로 나왔음, 2026-11-06) */
+export const EVENTS_DAYS = 365;
 
-/** 새 것부터, 최대 8개. bars 는 현재가를 반영한 봉, analysis 는 그 봉으로 계산한 값 */
-export function stockEvents(bars: Bars, analysis: Analysis): StockEvent[] {
+/** 새 것부터, 최근 1년 안, 최대 8개. bars 는 현재가를 반영한 봉, analysis 는 그 봉으로 계산한 값 */
+export function stockEvents(bars: Bars, analysis: Analysis, nowMs = Date.now()): StockEvent[] {
   const out: StockEvent[] = [];
   const { chart } = analysis;
   const n = bars.c.length;
@@ -58,7 +60,11 @@ export function stockEvents(bars: Bars, analysis: Analysis): StockEvent[] {
   const high = lastNewHigh(bars, start);
   if (high) out.push(high);
 
-  return out.sort((x, y) => y.t - x.t).slice(0, EVENTS_MAX);
+  const since = nowMs / 1000 - EVENTS_DAYS * 86_400;
+  return out
+    .filter((e) => e.t >= since)
+    .sort((x, y) => y.t - x.t)
+    .slice(0, EVENTS_MAX);
 }
 
 /**
@@ -76,8 +82,8 @@ function lastNewHigh(bars: Bars, from: number): StockEvent | null {
 export type ChangeKind = 'rsi_low_enter' | 'rsi_high_enter' | 'ma_cross_up' | 'ma_cross_down' | 'high5y';
 
 /** sinceSec(epoch 초) 이후 봉에서 있었던 변화 — 기기 기록(palsal.changes.v1)에 합쳐요 */
-export function recentChanges(bars: Bars, analysis: Analysis, sinceSec: number): (StockEvent & { kind: ChangeKind })[] {
-  return stockEvents(bars, analysis).filter((e): e is StockEvent & { kind: ChangeKind } => e.kind !== 'div_bull' && e.kind !== 'div_bear' && e.t >= sinceSec);
+export function recentChanges(bars: Bars, analysis: Analysis, sinceSec: number, nowMs = Date.now()): (StockEvent & { kind: ChangeKind })[] {
+  return stockEvents(bars, analysis, nowMs).filter((e): e is StockEvent & { kind: ChangeKind } => e.kind !== 'div_bull' && e.kind !== 'div_bear' && e.t >= sinceSec);
 }
 
 const UNIT: Record<Interval, string> = { '1d': '일', '1wk': '주', '1mo': '개월' };

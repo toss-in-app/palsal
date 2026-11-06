@@ -14,6 +14,7 @@ import { changeColor, DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP, ZONE_
 import { fullChart, type Interval } from '../lib/series';
 import { quoteTimeOf } from '../data/types';
 import { barsWithQuote, isStale, loadCards, retryCard, type CardsState } from '../state/cards';
+import { settingsStore, updateSettings } from '../state/settings';
 import { watchId, type WatchItem } from '../state/watch';
 
 const INTERVALS: Interval[] = ['1d', '1wk', '1mo'];
@@ -105,15 +106,17 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   const events = useMemo(() => (liveBars && entry?.analysis ? stockEvents(liveBars, entry.analysis) : []), [liveBars, entry]);
   /** 움직이는 차트용 — 받은 봉 전부(처음 보이는 구간은 예전 자세히 차트와 같아요) */
   const full = useMemo(() => (liveBars ? fullChart(liveBars, marketOf(symbol, info) === 'CRYPTO') : null), [liveBars, symbol, info]);
-  /** 차트에서 고른 봉(누르고 있거나 짧게 누름). null 이면 최신 */
+  /** 차트에서 누르고 있는 봉. null 이면 최신 */
   const [point, setPoint] = useState<number | null>(null);
+  /** 차트 쓰는 법 한 줄 — 처음 다뤄 보기 전까지(이 화면에 있는 동안은 그대로) */
+  const [chartHint] = useState(() => settingsStore.get().chartUsedAt === null);
   const changeInterval = (v: Interval) => {
     setPoint(null);
     setBarInterval(v);
     logEvent('interval_change', { interval: v });
   };
 
-  // 차트에서 봉을 고르면 위 가격 · RSI 가 그 봉 값(전 봉 대비)이에요
+  // 차트를 누르고 있으면 위 가격 · RSI 가 그 봉 값(전 봉 대비)이에요(떼면 최신)
   const picked = point !== null && full && point < full.c.length ? point : null;
   const price = picked !== null ? full!.c[picked] : (a?.price ?? null);
   const prevClose =
@@ -218,42 +221,43 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
         ) : (
           <span aria-hidden="true" style={{ display: 'block', width: 160, height: 30, borderRadius: 8, background: colors.grey100, marginTop: 8 }} />
         )}
-        {pickedLabel !== null ? (
-          // 차트에서 고른 봉: 위 가격은 그 봉 종가(전 봉 대비), 아래 줄은 그 봉 날짜
-          <Text display="block" typography="t7" fontWeight="semibold" color={colors.grey700} style={{ marginTop: 4, ...tabular }}>
-            {pickedLabel}
-          </Text>
-        ) : (
-          <>
-          {quote?.ext_session && quote.ext_price && quote.ext_change_pct !== null ? (
-            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
-              <TermWord label="프리마켓·애프터마켓 뜻 보기" onClick={() => setTerm('ext-hours')}>
-                {quote.ext_session === 'pre' ? '프리마켓' : '애프터마켓'}
-              </TermWord>{' '}
-              {formatPrice(quote.ext_price, unit, fx)} <span style={{ color: changeColor(quote.ext_change_pct) }}>{formatPct(quote.ext_change_pct)}</span>
+        {/* 차트를 누르고 있는 동안: 아래 줄들은 자리를 지킨 채 숨기고 그 봉의 날짜를 보여 줘요 — 높이가 바뀌어 차트가 손가락 밑에서 움직이지 않게 */}
+        <div style={{ position: 'relative' }}>
+          <div style={pickedLabel !== null ? { visibility: 'hidden' } : undefined} aria-hidden={pickedLabel !== null || undefined}>
+            {quote?.ext_session && quote.ext_price && quote.ext_change_pct !== null ? (
+              <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+                <TermWord label="프리마켓·애프터마켓 뜻 보기" onClick={() => setTerm('ext-hours')}>
+                  {quote.ext_session === 'pre' ? '프리마켓' : '애프터마켓'}
+                </TermWord>{' '}
+                {formatPrice(quote.ext_price, unit, fx)} <span style={{ color: changeColor(quote.ext_change_pct) }}>{formatPct(quote.ext_change_pct)}</span>
+              </Text>
+            ) : null}
+            {a ? (
+              <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+                <TermWord label="5년 최고가 뜻 보기" onClick={() => setTerm('high5y')}>
+                  5년 최고가
+                </TermWord>
+                {a.fromHigh >= 0 ? (
+                  '를 새로 썼어요'
+                ) : (
+                  <>
+                    {`보다 ${a.fromHigh.toFixed(1)}%`}
+                  </>
+                )}
+              </Text>
+            ) : null}
+            {at ? (
+              <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey600} style={{ marginTop: 4, ...tabular }}>
+                {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준${delayed ? ' · 약 20분 늦은 시세' : ''}`}
+              </Text>
+            ) : null}
+          </div>
+          {pickedLabel !== null ? (
+            <Text display="block" typography="t7" fontWeight="semibold" color={colors.grey700} style={{ position: 'absolute', left: 0, top: 4, ...tabular }}>
+              {pickedLabel}
             </Text>
           ) : null}
-          {a ? (
-            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
-              <TermWord label="5년 최고가 뜻 보기" onClick={() => setTerm('high5y')}>
-                5년 최고가
-              </TermWord>
-              {a.fromHigh >= 0 ? (
-                '를 새로 썼어요'
-              ) : (
-                <>
-                  {`보다 ${a.fromHigh.toFixed(1)}%`}
-                </>
-              )}
-            </Text>
-          ) : null}
-          {at ? (
-            <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey600} style={{ marginTop: 4, ...tabular }}>
-              {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준${delayed ? ' · 약 20분 늦은 시세' : ''}`}
-            </Text>
-          ) : null}
-          </>
-        )}
+        </div>
         <span role="status" style={srOnly}>
           {pickedLabel !== null && price !== null ? `${pickedLabel} 종가 ${formatPrice(price, unit, fx)}${rsiNow !== null ? `, RSI ${formatRsi(rsiNow)}` : ''}` : ''}
         </span>
@@ -289,7 +293,11 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
               interval={interval}
               point={picked}
               onPoint={setPoint}
-              onUse={(kind) => logEvent('chart_use', { interval, kind })}
+              hint={chartHint}
+              onUse={(kind) => {
+                logEvent('chart_use', { interval, kind });
+                if (settingsStore.get().chartUsedAt === null) updateSettings({ chartUsedAt: Date.now() });
+              }}
               between={(zoom) => (
                 <>
                   {legend(zoom)}
@@ -353,7 +361,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
                 </ul>
               ) : (
                 <Text display="block" typography="t7" color={colors.grey600}>
-                  {`최근 ${a.chart.c.length}${barUnit} 동안 RSI 30·70 진입이나 이동평균 교차가 없었어요`}
+                  최근 1년 동안 RSI 30·70 진입이나 이동평균 교차가 없었어요
                 </Text>
               )}
             </Section>

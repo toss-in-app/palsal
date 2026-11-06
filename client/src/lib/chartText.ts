@@ -9,3 +9,11 @@ export function axisText(v: number): string {
   const d = a >= 100 ? 0 : a >= 1 ? 2 : 4;
   return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
+
+/** 한 축의 눈금 전부 — 자릿수는 눈금 간격으로 정해 같은 축에서 '50.00' 과 '100' 이 섞이지 않게 */
+export function axisLabels(levels: readonly number[]): string[] {
+  if (levels.length < 2) return levels.map(axisText);
+  const step = Math.abs(levels[1] - levels[0]);
+  const d = step >= 1 || !(step > 0) ? 0 : Math.min(4, -Math.floor(Math.log10(step)));
+  return levels.map((v) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }));
+}

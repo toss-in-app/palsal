@@ -12,6 +12,8 @@ export interface Settings {
   autoRefresh: boolean;
   firstOpenAt: number;
   notification: { promptDismissedAt: number | null; lastResult: null | 'agreed' | 'declined' | 'error' | 'unsupported' };
+  /** 자세히 차트를 처음 다룬 때(밀기·벌리기·누르고 있기). null 이면 차트 아래 쓰는 법 한 줄을 보여 줘요 */
+  chartUsedAt: number | null;
 }
 
 export function defaultSettings(now = Date.now()): Settings {
@@ -21,6 +23,7 @@ export function defaultSettings(now = Date.now()): Settings {
     autoRefresh: true,
     firstOpenAt: now,
     notification: { promptDismissedAt: null, lastResult: null },
+    chartUsedAt: null,
   };
 }
 
@@ -36,8 +39,10 @@ export function parseSettings(json: unknown, now = Date.now()): Settings {
     typeof o.autoRefresh === 'boolean' &&
     Number.isInteger(o.firstOpenAt) &&
     (noti.promptDismissedAt === null || Number.isInteger(noti.promptDismissedAt)) &&
-    [null, 'agreed', 'declined', 'error', 'unsupported'].includes(noti.lastResult as string | null);
-  return ok ? (json as Settings) : d;
+    [null, 'agreed', 'declined', 'error', 'unsupported'].includes(noti.lastResult as string | null) &&
+    (o.chartUsedAt === undefined || o.chartUsedAt === null || Number.isInteger(o.chartUsedAt));
+  // chartUsedAt 은 뒤에 더한 칸(2026-11-06) — 예전 저장본엔 없어요
+  return ok ? { ...(json as Settings), chartUsedAt: (o.chartUsedAt as number | null | undefined) ?? null } : d;
 }
 
 export const settingsStore = createStore<Settings>(defaultSettings());

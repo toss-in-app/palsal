@@ -14,12 +14,13 @@ export interface ChartGestureOptions {
   plot: { left: number; width: number };
   getView: () => ChartView;
   setView: (v: ChartView) => void;
-  /** 값을 볼 봉. tap = 짧게 누름, hold = 길게 누른 채 옮김, clear = 밀기·벌리기를 시작해서 숨김 */
-  onPoint: (index: number | null, how: 'tap' | 'hold' | 'clear') => void;
+  /** 값을 볼 봉. hold = 누르고 있는 동안(옮기면 따라감), clear = 손을 뗐거나 밀기·벌리기를 시작해서 숨김. 짧게 누르기는 아무것도 안 해요 */
+  onPoint: (index: number | null, how: 'hold' | 'clear') => void;
 }
 
 /**
- * 차트 손짓 — 한 손가락으로 옆으로 밀기(놓으면 조금 더 미끄러짐) · 두 손가락으로 벌리기/오므리기 · 길게 누르기 · 짧게 누르기.
+ * 차트 손짓 — 한 손가락으로 옆으로 밀기(놓으면 조금 더 미끄러짐) · 두 손가락으로 벌리기/오므리기 · 누르고 있기(떼면 원래대로).
+ * 짧게 누르기는 아무것도 바꾸지 않아요(사용자 2026-11-06: 누르면 값이 바뀌어 있는 게 문제).
  * 화면 안의 차트라 위아래로 미는 건 화면 스크롤에 맡겨요: 요소에 touch-action: pan-y, 위아래로 먼저 움직이면 손대지 않아요.
  * 마우스 휠(PC)은 위아래면 화면 스크롤, 옆으로 밀면 차트 밀기, Ctrl(트랙패드 벌리기)이면 크게/작게.
  */
@@ -57,9 +58,9 @@ export function useChartGestures(ref: RefObject<HTMLElement | null>, options: Ch
       const { n, plot, getView, setView } = opts.current;
       setView(panView(getView(), dx, plot.width, n));
     };
-    const pointAt = (clientX: number, how: 'tap' | 'hold') => {
+    const pointAt = (clientX: number) => {
       const { getView, n, onPoint } = opts.current;
-      onPoint(indexAt(getView(), frac(clientX), n), how);
+      onPoint(indexAt(getView(), frac(clientX), n), 'hold');
     };
     /** 놓은 뒤 미끄러짐 — 속도(px/ms)를 조금씩 줄여요. 끝에 닿으면 멈춰요 */
     const fling = (v0: number) => {
@@ -101,7 +102,7 @@ export function useChartGestures(ref: RefObject<HTMLElement | null>, options: Ch
           timer = null;
           if (mode !== 'press') return;
           mode = 'hold';
-          pointAt(down.x, 'hold');
+          pointAt(down.x);
         }, HOLD_MS);
       } else if (pointers.size === 2) {
         stopTimer();
@@ -123,7 +124,7 @@ export function useChartGestures(ref: RefObject<HTMLElement | null>, options: Ch
         return;
       }
       if (mode === 'hold') {
-        pointAt(e.clientX, 'hold');
+        pointAt(e.clientX);
         return;
       }
       if (mode === 'press' && Math.hypot(e.clientX - down.x, e.clientY - down.y) > SLOP) {
@@ -159,7 +160,8 @@ export function useChartGestures(ref: RefObject<HTMLElement | null>, options: Ch
       }
       if (pointers.size > 0) return;
       stopTimer();
-      if (mode === 'press' && e.type === 'pointerup') pointAt(e.clientX, 'tap');
+      // 누르고 있다 떼면 값 보기가 끝나요(짧게 누른 건 아무것도 안 해요)
+      if (mode === 'hold') opts.current.onPoint(null, 'clear');
       else if (mode === 'pan' && e.type === 'pointerup' && samples.length >= 2) {
         const a = samples[0];
         const b = samples[samples.length - 1];

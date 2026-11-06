@@ -210,6 +210,17 @@
               ]
             }
           }
+        },
+        "chartUsedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/epochMs"
+            }
+          ],
+          "description": "자세히 차트를 처음 다룬 때(밀기·벌리기·누르고 있기, 2026-11-06). null 이면 차트 아래 쓰는 법 한 줄. 예전 저장본엔 없을 수 있어 앱은 없으면 null 로 봄(required 아님)"
         }
       }
     },

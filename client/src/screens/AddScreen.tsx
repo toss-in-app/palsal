@@ -95,6 +95,7 @@ export function AddScreen({ symbols, rank, watched, source, onAdd, onDone, onToa
         종목 담기
       </Text>
       <SearchField
+        autoFocus
         placeholder="종목 이름이나 티커"
         aria-label="담을 종목 찾기"
         value={query}

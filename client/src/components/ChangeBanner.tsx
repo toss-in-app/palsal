@@ -75,8 +75,9 @@ export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps)
               onClick={() => onOpen(c)}
               className="tap"
               style={{
-                flex: 'none',
-                width: 'min(322px, calc(100% - 40px))',
+                // 하나면 아래 종목 카드와 폭을 맞추고(칸을 꽉 채움), 여럿이면 다음 카드가 살짝 보이게
+                flex: shown.length === 1 ? '1 0 auto' : 'none',
+                width: shown.length === 1 ? 'auto' : 'min(322px, calc(100% - 40px))',
                 scrollSnapAlign: 'start',
                 display: 'flex',
                 alignItems: 'center',

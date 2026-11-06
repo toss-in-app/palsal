@@ -8,6 +8,8 @@ const DAY0 = Date.parse('2025-01-02T00:00:00Z') / 1000;
 function barsOf(closes: number[], high5y = Math.max(...closes)): Bars {
   return { interval: '1d', tz: 'UTC', t: closes.map((_, i) => DAY0 + i * 86400), c: closes, l: closes.map((v) => v * 0.995), high5y };
 }
+/** '지금' = 마지막 봉 다음 날(소식은 최근 1년 안만) */
+const nowOf = (b: Bars) => (b.t[b.t.length - 1] + 86400) * 1000;
 
 /** 오래 오르다(70 위) 꺾여 오래 내리는(30 아래) 종가 */
 function upThenDown(): number[] {
@@ -21,7 +23,7 @@ describe('stockEvents', () => {
   it('화면 기간 안의 30 아래·70 위 진입과 교차를 새 것부터', () => {
     const b = barsOf(upThenDown());
     const a = analyze(b, false)!;
-    const ev = stockEvents(b, a);
+    const ev = stockEvents(b, a, nowOf(b));
     expect(ev.length).toBeGreaterThan(0);
     expect(ev.length).toBeLessThanOrEqual(EVENTS_MAX);
     for (let i = 1; i < ev.length; i++) expect(ev[i - 1].t).toBeGreaterThanOrEqual(ev[i].t);
@@ -36,7 +38,7 @@ describe('stockEvents', () => {
   it('5년 최고가를 새로 쓰면 맨 위에', () => {
     const closes = Array.from({ length: 200 }, (_, i) => 100 + i);
     const b = barsOf(closes, 150);
-    const ev = stockEvents(b, analyze(b, false)!);
+    const ev = stockEvents(b, analyze(b, false)!, nowOf(b));
     expect(ev[0]).toMatchObject({ kind: 'high5y', t: b.t[199] });
   });
 
@@ -53,16 +55,27 @@ describe('recentChanges', () => {
     const { recentChanges } = await import('./events');
     const b = barsOf(upThenDown());
     const a = analyze(b, false)!;
-    const all = stockEvents(b, a);
+    const all = stockEvents(b, a, nowOf(b));
     const since = all[Math.floor(all.length / 2)].t;
-    const recent = recentChanges(b, a, since);
+    const recent = recentChanges(b, a, since, nowOf(b));
     expect(recent.every((e) => e.t >= since && (e.kind as string) !== 'div_bull' && (e.kind as string) !== 'div_bear')).toBe(true);
   });
 
   it('5년 최고가는 그 값에 닿은 가장 최근 봉', () => {
     const closes = Array.from({ length: 200 }, (_, i) => (i === 190 ? 300 : 100 + (i % 7)));
     const b = barsOf(closes, 300);
-    const high = stockEvents(b, analyze(b, false)!).find((e) => e.kind === 'high5y');
+    const high = stockEvents(b, analyze(b, false)!, nowOf(b)).find((e) => e.kind === 'high5y');
     expect(high).toMatchObject({ t: b.t[190], to: 300 });
+  });
+});
+
+describe('소식은 최근 1년 안만', () => {
+  it('마지막 봉이 2년 뒤면 1년 넘은 일은 빠져요', () => {
+    const b = barsOf(upThenDown());
+    const a = analyze(b, false)!;
+    const all = stockEvents(b, a, nowOf(b));
+    const later = stockEvents(b, a, nowOf(b) + 2 * 365 * 86_400_000);
+    expect(all.length).toBeGreaterThan(0);
+    expect(later).toEqual([]);
   });
 });

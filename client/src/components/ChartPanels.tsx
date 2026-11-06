@@ -1,7 +1,7 @@
 import { colors } from '@toss/tds-colors';
 import { memo, useId } from 'react';
 
-import { axisText, textWidth } from '../lib/chartText';
+import { axisLabels, textWidth } from '../lib/chartText';
 import { drawRange, fitRange, timeTicks, viewStart, ZOOM_PL, type ChartView } from '../lib/chartView';
 import { HIGH_LINE, LOW_LINE, zoneOf } from '../lib/indicators';
 import { DOWN, HIGH_BG, HIGH_INK, LOW_BG, LOW_INK, MA_120, MA_200, MA_50W, UP, zoneInk } from '../lib/palette';
@@ -70,6 +70,7 @@ export const PricePanel = memo(function PricePanel({ model, view, point, width, 
   lo -= pad;
   hi += pad * 1.4;
   const y = (v: number) => top + ((hi - v) / (hi - lo)) * (bottom - top);
+  const levels = niceTicks(lo, hi, 4);
   const ink = c[f1] >= c[f0] ? UP : DOWN;
   const pricePath = pathOf(c, i0, i1, x, y);
   const div = model.divergence;
@@ -92,11 +93,11 @@ export const PricePanel = memo(function PricePanel({ model, view, point, width, 
           <rect x={ZOOM_PL} y={top - 8} width={plotW} height={bottom - top + 8} />
         </clipPath>
       </defs>
-      {niceTicks(lo, hi, 4).map((v) => (
-        <g key={v}>
-          <line x1={ZOOM_PL} x2={right + 4} y1={y(v)} y2={y(v)} stroke={colors.grey100} strokeWidth={1} />
-          <text x={width - 2} y={y(v) + 4} fontSize={11} fill={colors.grey600} textAnchor="end">
-            {axisText(v)}
+      {axisLabels(levels).map((label, i) => (
+        <g key={levels[i]}>
+          <line x1={ZOOM_PL} x2={right + 4} y1={y(levels[i])} y2={y(levels[i])} stroke={colors.grey100} strokeWidth={1} />
+          <text x={width - 2} y={y(levels[i]) + 4} fontSize={11} fill={colors.grey600} textAnchor="end">
+            {label}
           </text>
         </g>
       ))}

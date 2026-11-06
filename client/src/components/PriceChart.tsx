@@ -1,7 +1,7 @@
 import { colors } from '@toss/tds-colors';
 import { memo, useId } from 'react';
 
-import { axisText, textWidth } from '../lib/chartText';
+import { axisLabels, textWidth } from '../lib/chartText';
 import { exchangeDay, type ChartModel, type ExchangeTz, type Interval } from '../lib/series';
 import { DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP } from '../lib/palette';
 import { niceTicks } from '../lib/ticks';
@@ -79,7 +79,7 @@ export const PriceChart = memo(function PriceChart({ model, tz, interval, label,
   lo -= pad;
   hi += pad * 1.4;
   const levels = niceTicks(lo, hi);
-  const labels = levels.map(axisText);
+  const labels = axisLabels(levels);
   // 오른쪽 눈금 자리는 가장 긴 눈금 글자 + 여백(원화 6자리도 선 끝점과 부딪히지 않게)
   const PR = Math.max(30, Math.ceil(Math.max(0, ...labels.map(textWidth)) + 12));
   const x = (i: number) => PL + (i / (n - 1)) * (width - PL - PR);

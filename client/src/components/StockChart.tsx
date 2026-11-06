@@ -28,9 +28,11 @@ export interface StockChartProps {
   name: string;
   tz: ExchangeTz;
   interval: Interval;
-  /** 값을 보는 봉 — 위 가격 · RSI 자리가 이 봉 값으로 바뀌어요. null = 최신 */
+  /** 값을 보는 봉(누르고 있는 동안만) — 위 가격 · RSI 자리가 이 봉 값으로 바뀌어요. null = 최신 */
   point: number | null;
   onPoint: (index: number | null) => void;
+  /** 쓰는 법 한 줄 — 처음 밀거나 벌리거나 누르고 있어 본 뒤엔 숨겨요 */
+  hint: boolean;
   /** 가격 칸과 RSI 칸 사이(범례 · RSI 머리) — 확대·축소 단추를 넣을 수 있게 받아요 */
   between: (zoom: ZoomControls) => ReactNode;
   /** 처음 밀었을 때 · 벌렸을 때 · 값을 봤을 때 한 번씩(분석) */
@@ -39,18 +41,16 @@ export interface StockChartProps {
 
 /**
  * 종목 자세히의 차트 — 들어가는 화면 없이 그 자리에서 바로(사용자 2026-11-06 "클릭하고 들어가는 거 말고 바로, depth 깊지 않게").
- * 옆으로 밀기 · 두 손가락 벌리기 · 누르고 있기(값) · 짧게 누르기. 위아래로 밀면 화면이 스크롤돼요(touch-action: pan-y).
+ * 옆으로 밀기 · 두 손가락 벌리기 · 누르고 있기(값, 떼면 원래대로 — 짧게 누르기는 아무것도 안 바꿔요). 위아래로 밀면 화면이 스크롤돼요(touch-action: pan-y).
  * 처음엔 예전 자세히 차트와 같은 구간(최근 180봉, 엇갈림이 있으면 더), 받은 봉 전부까지 볼 수 있어요. 봉 단위가 바뀌면 key 로 새로.
  */
-export function StockChart({ model, name, tz, interval, point, onPoint, between, onUse }: StockChartProps) {
+export function StockChart({ model, name, tz, interval, point, onPoint, hint, between, onUse }: StockChartProps) {
   const n = model.c.length;
   const [view, setViewState] = useState<ChartView>(() => initialView(n, n - model.detailStart));
   const viewRef = useRef(view);
-  const pointRef = useRef(point);
   const onPointRef = useRef(onPoint);
   const onUseRef = useRef(onUse);
   useLayoutEffect(() => {
-    pointRef.current = point;
     onPointRef.current = onPoint;
     onUseRef.current = onUse;
   });
@@ -118,12 +118,12 @@ export function StockChart({ model, name, tz, interval, point, onPoint, between,
     plot: { left: ZOOM_PL, width: Math.max(1, width - ZOOM_PL - gutter) },
     getView: () => viewRef.current,
     setView,
-    // 짧게 누르면 그 봉 — 같은 봉을 한 번 더 누르면 최신으로. 길게 누르기 시작할 때 짧게 진동
-    onPoint: (i: number | null, how: 'tap' | 'hold' | 'clear') => {
+    // 누르고 있는 동안 그 봉(시작할 때 짧게 진동), 떼면 최신으로
+    onPoint: (i: number | null, how: 'hold' | 'clear') => {
       if (how === 'hold' && !holding.current) haptic('tickWeak');
       holding.current = how === 'hold';
       if (i !== null) markUsed('point');
-      onPointRef.current(how === 'tap' && pointRef.current === i ? null : i);
+      onPointRef.current(i);
     },
   };
   const priceRef = useRef<HTMLDivElement>(null);
@@ -162,7 +162,7 @@ export function StockChart({ model, name, tz, interval, point, onPoint, between,
   return (
     <>
       <div ref={boxRef} style={{ margin: '14px 20px 0' }}>
-        <div ref={priceRef} role="img" aria-label={rangeLabel} aria-describedby={hintId} tabIndex={0} onKeyDown={onKey} style={surface}>
+        <div ref={priceRef} role="img" aria-label={rangeLabel} aria-describedby={hint ? hintId : undefined} tabIndex={0} onKeyDown={onKey} style={surface}>
           <PricePanel model={model} tz={tz} interval={interval} view={view} point={point} width={width} height={PRICE_H} gutter={gutter} />
           {!latest ? (
             // 지난 봉을 보는 중이면 가격 칸 오른쪽 아래에 — 누르면 최신 봉으로
@@ -205,11 +205,13 @@ export function StockChart({ model, name, tz, interval, point, onPoint, between,
           <RsiPanel model={model} view={view} point={point} width={width} height={RSI_H} gutter={gutter} />
         </div>
       </div>
-      <div id={hintId} style={{ margin: '8px 24px 0' }}>
-        <Text display="block" typography="t7" color={colors.grey600} style={{ lineHeight: 1.5 }}>
-          옆으로 밀면 지난 봉, 두 손가락으로 벌리면 크게 보여요. 누르고 있으면 그 봉의 값이 위에 나와요.
-        </Text>
-      </div>
+      {hint ? (
+        <div id={hintId} style={{ margin: '8px 24px 0' }}>
+          <Text display="block" typography="t7" color={colors.grey600} style={{ lineHeight: 1.5 }}>
+            옆으로 밀면 지난 봉, 두 손가락으로 벌리면 크게 보여요. 누르고 있으면 그 봉의 값이 위에 나와요.
+          </Text>
+        </div>
+      ) : null}
     </>
   );
 }
