@@ -1,8 +1,8 @@
 {
  "kind": "content",
  "schema": 1,
- "contentVersion": "2026-11-06.1",
- "minClientVersion": "1.0.0",
+ "contentVersion": "2026-11-06.2",
+ "minClientVersion": "0.0.1",
  "notice": null,
  "zones": [
   {

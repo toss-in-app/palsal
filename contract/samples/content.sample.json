@@ -2,7 +2,7 @@
  "kind": "content",
  "schema": 1,
  "contentVersion": "2026-11-05.1",
- "minClientVersion": "1.0.0",
+ "minClientVersion": "0.0.1",
  "notice": null,
  "zones": [
   {

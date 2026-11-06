@@ -170,7 +170,7 @@ def main():
     if len(out_items) > MAX_ITEMS:
         sys.exit(f'종목 {len(out_items)}개 — 상한 {MAX_ITEMS} 를 넘어요')
     version = args.version or f'{datetime.date.today().isoformat()}.1'
-    doc = {'kind': 'symbols', 'schema': 1, 'contentVersion': version, 'minClientVersion': '1.0.0', 'items': out_items}
+    doc = {'kind': 'symbols', 'schema': 1, 'contentVersion': version, 'minClientVersion': '0.0.1', 'items': out_items}
     (ROOT / 'content/symbols.source.json').write_text(json.dumps(doc, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     by_market = {}
     for it in out_items:

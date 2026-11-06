@@ -1,8 +1,8 @@
 {
  "kind": "symbols",
  "schema": 1,
- "contentVersion": "2026-11-05.3",
- "minClientVersion": "1.0.0",
+ "contentVersion": "2026-11-06.1",
+ "minClientVersion": "0.0.1",
  "items": [
   {
    "s": "000020.KS",

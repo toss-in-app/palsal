@@ -2,7 +2,7 @@
  "kind": "symbols",
  "schema": 1,
  "contentVersion": "2026-11-05.1",
- "minClientVersion": "1.0.0",
+ "minClientVersion": "0.0.1",
  "items": [
   {
    "s": "005930.KS",
