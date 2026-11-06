@@ -2,7 +2,7 @@
   "name": "palsal",
   "private": true,
   "type": "module",
-  "description": "팔껄살껄 — 내 종목 RSI 감시, 앱인토스 미니앱. client/ 가 앱, supabase/ 가 시세 서버, 나머지는 계약·콘텐츠·정적 호스팅 자료",
+  "description": "살껄팔껄 — 내 종목 RSI 감시, 앱인토스 미니앱. client/ 가 앱, supabase/ 가 시세 서버, 나머지는 계약·콘텐츠·정적 호스팅 자료",
   "scripts": {
     "content": "node scripts/build-content.mjs",
     "client:dev": "npm --prefix client run dev",

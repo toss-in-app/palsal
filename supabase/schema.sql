@@ -1,4 +1,4 @@
--- palsal(팔껄살껄) 시세 표 — palsal 전용 Supabase 프로젝트(vksqtugrlkzmkjsgosej, 서울 ap-northeast-2), public 스키마 palsal_ 접두사
+-- palsal(살껄팔껄) 시세 표 — palsal 전용 Supabase 프로젝트(vksqtugrlkzmkjsgosej, 서울 ap-northeast-2), public 스키마 palsal_ 접두사
 -- 2026-11-05 사용자 결정: mandalartplan 프로젝트와 따로(출시 중인 앱 DB 와 섞지 않음, 무료 프로젝트 2개 중 마지막 자리).
 -- 계약: contract/server.md · quotes.schema.json · bars.schema.json · market.schema.json
 -- 적용: supabase db query --remote --yes -f supabase/schema.sql (여러 번 돌려도 같게 — if not exists · or replace)
