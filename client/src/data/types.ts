@@ -100,8 +100,11 @@ export function toQuote(row: QuoteRow): QuoteLike {
 export interface MarketSource {
   quotes(symbols: string[]): Promise<QuoteRow[]>;
   bars(keys: string[]): Promise<BarsRow[]>;
-  /** 서버가 아직 지켜보지 않는 종목을 '지켜봐 줘'(최대 12개) */
-  track(symbols: string[]): Promise<void>;
+  /**
+   * '지켜봐 줘'(최대 12개). 서버가 지금 새로 받기 시작한 종목(새 종목 · 14일 넘게 빠져 있던 종목 · 현재가가 없는 종목)을 돌려줘요
+   * — 그 종목의 지금 봉은 오래됐을 수 있어 잠깐 뒤 다시 읽어요(계약 v1.12).
+   */
+  track(symbols: string[]): Promise<string[]>;
   /** 시장 탭(공포탐욕 3 · 시총 상위 RSI · 30 아래). 없거나 모양이 다르면 null */
   market(): Promise<MarketPayload | null>;
 }

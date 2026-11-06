@@ -239,7 +239,9 @@ export function fixtureSource(clock: () => number = Date.now, latencyMs = 450): 
         return makeBars(symbol, interval, clock());
       });
     },
-    async track() {},
+    async track() {
+      return [];
+    },
     async market() {
       await wait(latencyMs);
       return makeMarket(clock());

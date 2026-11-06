@@ -1,13 +1,14 @@
 import { symbolIndex, type Market } from '../content';
+import { liveStatic } from '../content/live';
 import { SourceError } from '../data/supabase';
 import { toBars, toQuote, type BarsRow, type MarketSource, type QuoteRow } from '../data/types';
 import { logEvent } from '../lib/analytics';
 import { marketOf, tzOf } from '../lib/format';
-import { analyze, withQuote, type Analysis, type Bars } from '../lib/series';
+import { analyze, exchangeDay, withQuote, type Analysis, type Bars } from '../lib/series';
 import { readJson, removeItem, writeJson } from '../lib/storage';
 import { recordChanges } from './changes';
 import { createStore, useStore } from './store';
-import { watchStore, type WatchItem } from './watch';
+import { STARTER, watchStore, type WatchItem } from './watch';
 
 /*
  * 카드 시세(내 종목 · 자세히 화면이 함께 써요). 화면을 오가도 남도록 모듈 저장소에 둬요.
@@ -15,10 +16,16 @@ import { watchStore, type WatchItem } from './watch';
  *    '그날'은 서버가 봉을 다시 넣는 시각(시장별, 한국 시간) 기준이라, 하루에 한 번만 받아요.
  *  - 현재가: palsal_quotes 를 보이는 카드 묶음마다, 그리고 보는 동안 5분마다 다시 읽어요.
  *  - 마지막 값: `palsal.cache.v1` — 다음에 열 때 차트 전까지 가격·RSI를 바로 보여 줘요.
+ *  - 지켜봐 줘: 담은 종목(시총 상위 · 예시 종목 빼고)을 하루 한 번 palsal_track 으로 알려요(`palsal.track.v1`).
+ *    서버는 14일 동안 아무도 알리지 않은 종목을 추적에서 빼요. 서버가 새로 받기 시작한 종목은 잠깐 뒤 다시 읽어요.
  */
 
 export const BARS_KEY_PREFIX = 'palsal.bars.v1:';
 export const CACHE_KEY = 'palsal.cache.v1';
+/** 오늘(한국 날짜) 서버에 '지켜봐 줘'를 이미 알린 종목 — 하루 한 번만 알려요 */
+export const TRACK_KEY = 'palsal.track.v1';
+/** 서버가 늘 지켜보는 종목(시총 상위는 universe 에서 따로) — 계약 server.md '무엇을 지켜보나' */
+const ALWAYS_TRACKED = new Set([...STARTER.map((s) => s.symbol), '^KS11']);
 /** 서버에 없는 종목은 '지켜봐 줘' 뒤 이만큼 기다렸다 다시 읽어요 */
 export const TRACK_RETRY_MS = 6000;
 /** 장중인데 현재가가 이보다 오래되면 '갱신이 늦어지고 있어요' */
@@ -88,6 +95,7 @@ export function resetCards(): void {
   cardsStore.set({ entries: {}, latestAt: null });
   lastValues = {};
   lastLoaded = false;
+  trackedToday = null;
 }
 
 function isLast(v: unknown): v is LastValue {
@@ -204,6 +212,41 @@ function writeBarsCache(row: BarsRow, now: number): void {
   void writeJson(BARS_KEY_PREFIX + row.key, value);
 }
 
+let trackedToday: { day: string; symbols: Set<string> } | null = null;
+
+/**
+ * 담은 종목을 하루 한 번 서버에 알려요(시총 상위 · 예시 종목은 서버가 늘 지켜봐서 빼요).
+ * 서버는 14일 동안 아무도 알리지 않은 종목을 추적에서 빼니, 이게 없으면 그런 종목의 시세가 멈춰요(2026-11-06 버그 수정).
+ * 돌려주는 값: 서버가 지금 새로 받기 시작한 종목 — 그 종목의 지금 봉은 오래됐을 수 있어 쓰지 않고 잠깐 뒤 다시 읽어요.
+ */
+async function keepTracked(symbols: string[], now: number): Promise<Set<string>> {
+  const fresh = new Set<string>();
+  if (!source) return fresh;
+  const day = exchangeDay(now, 'Asia/Seoul');
+  if (!trackedToday || trackedToday.day !== day) {
+    const saved = (await readJson(TRACK_KEY)) as { version?: number; day?: string; symbols?: unknown } | null;
+    const list = saved?.version === 1 && saved.day === day && Array.isArray(saved.symbols) ? saved.symbols.filter((s): s is string => typeof s === 'string') : [];
+    trackedToday = { day, symbols: new Set(list) };
+  }
+  const today = trackedToday;
+  const { universe } = liveStatic.get();
+  const fixed = new Set([...ALWAYS_TRACKED, ...universe.kr, ...universe.us]);
+  const need = [...new Set(symbols)].filter((s) => !fixed.has(s) && !today.symbols.has(s));
+  if (!need.length) return fresh;
+  for (let i = 0; i < need.length; i += 12) {
+    const chunk = need.slice(i, i + 12);
+    try {
+      (await source.track(chunk)).forEach((s) => fresh.add(s));
+      chunk.forEach((s) => today.symbols.add(s));
+    } catch (e) {
+      reportDataError('track', e);
+      break;
+    }
+  }
+  await writeJson(TRACK_KEY, { version: 1, day, symbols: [...today.symbols] });
+  return fresh;
+}
+
 const inflight = new Set<string>();
 
 /** 묶음 하나 불러오기(이미 받은 카드는 건너뛰어요). 서버에 없는 종목은 지켜봐 달라고 한 뒤 한 번 더 읽어요 */
@@ -216,8 +259,10 @@ export async function loadCards(items: WatchItem[], retry = true): Promise<{ n: 
   try {
     patchMany(todo.map((it) => [it.id, { status: 'loading' }]));
 
-    const cached = await Promise.all(todo.map((it) => readBarsCache(it, now)));
-    const need = todo.filter((_, i) => !cached[i]);
+    // 하루 한 번 '지켜봐 줘'. 서버가 지금 새로 받는 종목은 오래된 봉을 쓰지 않고 잠깐 뒤 다시 읽어요
+    const freshNow = retry ? await keepTracked(todo.map((it) => it.symbol), now) : new Set<string>();
+    const cached = await Promise.all(todo.map((it) => (freshNow.has(it.symbol) ? Promise.resolve(null) : readBarsCache(it, now))));
+    const need = todo.filter((it, i) => !cached[i] && !freshNow.has(it.symbol));
     const barsById = new Map<string, Bars>();
     todo.forEach((it, i) => cached[i] && barsById.set(it.id, cached[i]!));
 
@@ -251,7 +296,10 @@ export async function loadCards(items: WatchItem[], retry = true): Promise<{ n: 
     for (const it of todo) {
       const bars = barsById.get(it.id) ?? null;
       const quote = quotes.get(it.symbol) ?? null;
-      if (bars) {
+      if (freshNow.has(it.symbol)) {
+        // 서버가 방금 새로 받기 시작했어요 — 지켜봐 줘는 이미 했으니 기다렸다 다시 읽기만
+        updates.push([it.id, { status: 'pending', quote }]);
+      } else if (bars) {
         updates.push([it.id, { status: 'ready', bars, quote }]);
         if (!quote) stale += 1;
       } else if (!barsFailed && !quotesFailed && retry) {
@@ -264,12 +312,16 @@ export async function loadCards(items: WatchItem[], retry = true): Promise<{ n: 
     }
     patchMany(updates);
 
-    if (missing.length) {
-      try {
-        await source.track([...new Set(missing)]);
-      } catch (e) {
-        // 지켜봐 달라는 요청이 실패해도 한 번 더 읽어 봐요
-        reportDataError('track', e);
+    // 오늘 이미 알린 종목은 다시 묻지 않아요(서버가 받는 중이거나 잠깐 쉬는 중)
+    const askAgain = [...new Set(missing)].filter((s) => !trackedToday?.symbols.has(s));
+    if (missing.length || freshNow.size) {
+      if (askAgain.length) {
+        try {
+          await source.track(askAgain.slice(0, 12));
+        } catch (e) {
+          // 지켜봐 달라는 요청이 실패해도 한 번 더 읽어 봐요
+          reportDataError('track', e);
+        }
       }
       setTimeout(() => {
         const again = todo.filter((it) => cardsStore.get().entries[it.id]?.status === 'pending');

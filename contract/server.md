@@ -31,6 +31,7 @@ Postgres 표: palsal_quotes · palsal_bars · palsal_market · palsal_demand
 ## 무엇을 지켜보나 (추적 종목)
 - 서버는 휴대폰에 담긴 종목을 모른다 → 추적 = `universe.json` 시총 상위 60 + **처음 연 날 예시 4종목(QQQ · SPY · 005930.KS · 000660.KS — 새 사용자가 기다리지 않게 늘)** + `palsal_demand` 에서 **최근 14일 안에 누군가 읽은 종목**.
 - 휴대폰은 읽으려는 종목이 `palsal_quotes` 에 없으면 RPC `palsal_track(symbols text[])` 를 부른다(최대 12개, 심볼 꼴 검사). 처음 보는 종목이면 RPC 가 `pg_net` 으로 `palsal-fetch?mode=new` 를 바로 불러 **몇 초 안에** 채운다. 휴대폰은 5~10초 뒤 다시 읽는다(카드엔 '불러오는 중').
+- **(v1.12) 휴대폰은 담은 종목을 하루 한 번 `palsal_track` 으로 알린다**(시총 상위 · 예시 종목 빼고) — 서버는 14일 동안 아무도 알리지 않은 종목을 추적에서 빼므로. RPC 는 새 종목 · 14일 넘게 빠졌던 종목 · 현재가 없는 종목을 바로 새로 받고 그 목록(text[])을 돌려준다 → 휴대폰은 그 종목의 오래된 봉을 쓰지 않고 잠깐 뒤 다시 읽는다.
 - 없는 심볼은 `palsal_demand.not_found_until` 로 하루 동안 다시 안 부른다.
 
 ## 작업 (pg_cron → pg_net → `palsal-fetch`)

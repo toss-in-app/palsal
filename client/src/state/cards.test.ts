@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureSource } from '../data/fixture';
 import type { MarketSource, QuoteRow } from '../data/types';
 import { readJson } from '../lib/storage';
-import { barsDay, BARS_KEY_PREFIX, cardsStore, isStale, loadCards, refreshQuotes, resetCards, retryCard, setMarketSource } from './cards';
+import { barsDay, BARS_KEY_PREFIX, cardsStore, isStale, loadCards, refreshQuotes, resetCards, retryCard, setMarketSource, TRACK_KEY } from './cards';
 import { watchStore, type WatchItem } from './watch';
 
 const NOW = Date.parse('2026-11-05T06:40:00Z'); // 15:40 KST
 const item = (symbol: string, interval: WatchItem['interval'] = '1d'): WatchItem => ({ id: `${symbol}|${interval}`, symbol, interval, addedAt: 0 });
 
 /** 예시 데이터 출처에서 'ZZZZ' 만 서버에 없는 종목처럼 */
-function fakeSource(): MarketSource & { calls: { bars: string[][]; track: string[][] } } {
+function fakeSource(fresh: string[] = ['ZZZZ']): MarketSource & { calls: { bars: string[][]; track: string[][] } } {
   const base = fixtureSource(() => NOW, 0);
   const calls = { bars: [] as string[][], track: [] as string[][] };
   return {
@@ -20,8 +20,10 @@ function fakeSource(): MarketSource & { calls: { bars: string[][]; track: string
       calls.bars.push(k);
       return base.bars(k.filter((x) => !x.startsWith('ZZZZ')));
     },
+    // 진짜 서버처럼: 처음 보는 종목(또는 오래 빠져 있던 종목)은 '지금 새로 받는 중'으로 돌려줘요
     track: async (s) => {
       calls.track.push(s);
+      return s.filter((x) => fresh.includes(x));
     },
     market: () => base.market(),
   };
@@ -78,6 +80,32 @@ describe('loadCards', () => {
     await loadCards([item('ZZZZ')]);
     expect(src.calls.track).toEqual([['ZZZZ']]);
     expect(cardsStore.get().entries['ZZZZ|1d'].status).toBe('pending');
+  });
+
+  it('담은 종목을 하루 한 번만 알려요(시총 상위 · 예시 종목은 서버가 늘 지켜봐서 빼요)', async () => {
+    const src = fakeSource([]);
+    setMarketSource(src);
+    // 005930.KS = 예시 종목, AAPL = 시총 상위, 035720.KS(카카오) 만 알려요
+    await loadCards([item('005930.KS'), item('AAPL'), item('035720.KS')]);
+    expect(src.calls.track).toEqual([['035720.KS']]);
+    resetCards();
+    await loadCards([item('035720.KS')]);
+    expect(src.calls.track).toHaveLength(1); // 같은 날은 기기 기록을 보고 다시 묻지 않아요
+    expect(await readJson(TRACK_KEY)).toEqual({ version: 1, day: '2026-11-05', symbols: ['035720.KS'] });
+    resetCards();
+    vi.spyOn(Date, 'now').mockReturnValue(NOW + 86_400_000);
+    await loadCards([item('035720.KS')]);
+    expect(src.calls.track).toEqual([['035720.KS'], ['035720.KS']]); // 다음 날 다시
+  });
+
+  it('서버가 지금 새로 받기 시작한 종목은 오래된 봉을 쓰지 않고 기다렸다 다시 읽어요', async () => {
+    const src = fakeSource(['035720.KS']); // 14일 넘게 빠져 있다 다시 지켜보게 된 종목처럼
+    setMarketSource(src);
+    await loadCards([item('035720.KS'), item('005930.KS')]);
+    expect(cardsStore.get().entries['035720.KS|1d'].status).toBe('pending');
+    expect(cardsStore.get().entries['005930.KS|1d'].status).toBe('ready');
+    expect(src.calls.bars.flat()).not.toContain('035720.KS|1d');
+    expect(src.calls.track).toEqual([['035720.KS']]); // 기다리는 동안 다시 묻지 않아요
   });
 
   it('읽기에 실패하면 error, 다시 시도로 회복', async () => {

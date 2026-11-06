@@ -51,8 +51,9 @@ export function supabaseSource(baseUrl: string, publishableKey: string): MarketS
       return validRows(await call('bars', `palsal_bars?select=*&key=in.${inList(keys)}`), isBarsRow);
     },
     async track(symbols) {
-      if (!symbols.length) return;
-      await call('track', 'rpc/palsal_track', { method: 'POST', body: JSON.stringify({ symbols: symbols.slice(0, 12) }) });
+      if (!symbols.length) return [];
+      const fresh = await call('track', 'rpc/palsal_track', { method: 'POST', body: JSON.stringify({ symbols: symbols.slice(0, 12) }) });
+      return Array.isArray(fresh) ? fresh.filter((s): s is string => typeof s === 'string') : [];
     },
     async market() {
       const rows = await call('market', 'palsal_market?select=payload&id=eq.1');

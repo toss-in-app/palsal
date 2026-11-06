@@ -21,6 +21,9 @@
     },
     "palsal.cache.v1": {
       "$ref": "#/$defs/cache"
+    },
+    "palsal.track.v1": {
+      "$ref": "#/$defs/track"
     }
   },
   "patternProperties": {
@@ -352,6 +355,33 @@
         },
         "data": {
           "type": "object"
+        }
+      }
+    },
+    "track": {
+      "description": "오늘(한국 날짜) 서버에 '지켜봐 줘'(palsal_track)를 이미 알린 종목 — 담은 종목을 하루 한 번만 알려요(시총 상위 · 예시 종목 빼고). 서버는 14일 동안 아무도 알리지 않은 종목을 추적에서 빼요(계약 v1.12, 선택 키)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "day",
+        "symbols"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "day": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "symbols": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/symbol"
+          }
         }
       }
     }

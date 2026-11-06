@@ -102,22 +102,25 @@ $$;
 revoke all on function public.palsal_market_inputs(text[]) from public, anon, authenticated;
 grant execute on function public.palsal_market_inputs(text[]) to service_role;
 
--- 휴대폰이 '이 종목들 지켜봐 줘'. 아는 심볼만, 한 번에 12개까지. 처음 보는 종목은 서버를 바로 깨워요(10분에 60개까지).
-create or replace function public.palsal_track(symbols text[])
-returns int
+-- 휴대폰이 '이 종목들 지켜봐 줘'. 아는 심볼만, 한 번에 12개까지.
+-- 앱은 담은 종목을 하루 한 번 알려요(시총 상위·예시 종목은 빼고) → last_seen 이 갱신돼 서버가 계속 지켜봐요(palsal-fetch DEMAND_DAYS 14일).
+-- 새 종목 · 14일 넘게 아무도 알리지 않아 추적에서 빠졌던 종목 · 현재가가 없는 종목은 서버를 바로 깨워(10분에 60개까지) 몇 초 안에
+-- 새로 받고, 그 목록을 돌려줘요 — 앱은 그 종목의 오래된 봉을 쓰지 않고 잠깐 뒤 다시 읽어요. (2026-11-06: 반환 int → text[], 계약 v1.12)
+drop function if exists public.palsal_track(text[]);
+create function public.palsal_track(symbols text[])
+returns text[]
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   s text;
-  is_new boolean;
+  prev_seen timestamptz;
   fresh text[] := '{}';
-  touched int := 0;
   recent_new int;
 begin
   if symbols is null or cardinality(symbols) = 0 then
-    return 0;
+    return '{}';
   end if;
   if cardinality(symbols) > 12 then
     raise exception 'palsal_track: 한 번에 12개까지' using errcode = '22023';
@@ -125,25 +128,25 @@ begin
   foreach s in array symbols loop
     continue when not exists (select 1 from palsal_symbols where symbol = s);
     continue when exists (select 1 from palsal_demand where symbol = s and not_found_until > now());
+    select d.last_seen into prev_seen from palsal_demand d where d.symbol = s;
     insert into palsal_demand (symbol) values (s)
-      on conflict (symbol) do update set last_seen = now()
-      returning (xmax = 0) into is_new;
-    touched := touched + 1;
-    if is_new or not exists (select 1 from palsal_quotes where symbol = s) then
+      on conflict (symbol) do update set last_seen = now();
+    if prev_seen is null or prev_seen < now() - interval '14 days' or not exists (select 1 from palsal_quotes where symbol = s) then
       fresh := array_append(fresh, s);
     end if;
   end loop;
   select count(*) into recent_new from palsal_demand where first_seen > now() - interval '10 minutes';
-  if cardinality(fresh) > 0 and recent_new <= 60 then
-    -- 처음 보는 종목은 서버를 바로 깨워요(vault 의 palsal_fetch_url · palsal_cron_key — supabase/cron.sql 앞에서 넣음)
-    perform net.http_post(
-      url := (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_fetch_url') || '?mode=new',
-      headers := jsonb_build_object('Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_cron_key')),
-      body := jsonb_build_object('symbols', fresh),
-      timeout_milliseconds := 120000);
+  if cardinality(fresh) = 0 or recent_new > 60 then
+    return '{}';
   end if;
-  return touched;
+  -- 서버를 바로 깨워요(vault 의 palsal_fetch_url · palsal_cron_key — supabase/cron.sql 앞에서 넣음)
+  perform net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_fetch_url') || '?mode=new',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'palsal_cron_key')),
+    body := jsonb_build_object('symbols', fresh),
+    timeout_milliseconds := 120000);
+  return fresh;
 end;
 $$;
 revoke all on function public.palsal_track(text[]) from public;
