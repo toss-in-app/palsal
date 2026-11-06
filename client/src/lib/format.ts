@@ -119,6 +119,14 @@ export function formatBarDate(epochSec: number, tz: ExchangeTz, now: Date = new 
   return parts.year === thisYear ? md : `${parts.year}년 ${md}`;
 }
 
+/** 크게 보기 머리의 봉 이름: 일봉 '11월 6일' · 주봉 '11월 3일 주' · 월봉 '11월' (해가 다르면 앞에 'YYYY년') */
+export function formatBarPeriod(epochSec: number, tz: ExchangeTz, interval: Interval, now: Date = new Date()): string {
+  const day = formatBarDate(epochSec, tz, now);
+  if (interval === '1d') return day;
+  if (interval === '1wk') return `${day} 주`;
+  return day.replace(/ \d+일$/, '');
+}
+
 /** epoch ms → 한국 시각 '15:30' */
 export function formatKstTime(epochMs: number): string {
   const d = new Date(epochMs + 9 * 3_600_000);

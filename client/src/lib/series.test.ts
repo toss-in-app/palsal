@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { lastRsi } from './indicators';
-import { analyze, exchangeDay, MAX_BARS, withQuote, type Bars, type QuoteLike } from './series';
+import { lastRsi, rsiSeries } from './indicators';
+import { analyze, exchangeDay, fullChart, MAX_BARS, withQuote, type Bars, type QuoteLike } from './series';
 
 const sec = (iso: string) => Date.parse(iso) / 1000;
 
@@ -101,5 +101,43 @@ describe('analyze', () => {
   it('현재가가 5년 최고가보다 높으면 0(새로 씀)', () => {
     const a = analyze({ ...bars, high5y: 50 }, false)!;
     expect(a.fromHigh).toBe(0);
+  });
+});
+
+describe('fullChart (크게 보기)', () => {
+  const N = 520;
+  const day0 = Date.parse('2024-06-03T00:00:00Z') / 1000;
+  // 깊게 출렁여서 RSI 30 아래(▲)가 자세히 구간 안팎에 다 생기게
+  const closes = Array.from({ length: N }, (_, i) => 100 + 25 * Math.sin(i / 15) + i * 0.03);
+  const bars: Bars = { interval: '1d', tz: 'UTC', t: closes.map((_, i) => day0 + i * 86400), c: closes, l: closes.map((v) => v * 0.985), high5y: Math.max(...closes) };
+
+  it('받은 봉 전부 · 처음 보여 줄 구간은 자세히 차트와 같아요', () => {
+    const a = analyze(bars, false)!;
+    const f = fullChart(bars, false)!;
+    expect(f.c).toHaveLength(N);
+    expect(f.rsi).toEqual(rsiSeries(closes));
+    expect(f.detailStart).toBe(N - a.chart.c.length);
+    expect(f.c.slice(f.detailStart)).toEqual(a.chart.c);
+    expect(f.ma120[N - 1]).toBeCloseTo(closes.slice(-120).reduce((s, v) => s + v, 0) / 120, 6);
+    expect(f.ma200?.slice(f.detailStart)).toEqual(a.chart.ma200);
+  });
+
+  it('자세히 구간의 ▲△▼ 는 자세히와 똑같고, 그 앞도 표시가 이어져요', () => {
+    const a = analyze(bars, false)!;
+    const f = fullChart(bars, false)!;
+    const s0 = f.detailStart;
+    const recent = <T extends { index: number }>(list: T[]) => list.filter((m) => m.index >= s0).map((m) => ({ ...m, index: m.index - s0 }));
+    expect(recent(f.lowMarks)).toEqual(a.chart.lowMarks);
+    expect(recent(f.peakMarks)).toEqual(a.chart.peakMarks);
+    expect(a.chart.lowMarks.length).toBeGreaterThan(0);
+    expect(f.lowMarks.some((m) => m.index < s0)).toBe(true);
+    if (a.divergence) expect(bars.t[f.divergence!.from]).toBe(a.divergence.fromT);
+  });
+
+  it('주봉엔 200일선·50주선이 없어요 · 봉이 2개 미만이면 null', () => {
+    const f = fullChart({ ...bars, interval: '1wk' }, false)!;
+    expect(f.ma200).toBeNull();
+    expect(f.ma50w).toBeNull();
+    expect(fullChart({ ...bars, t: [day0], c: [1], l: [1] }, false)).toBeNull();
   });
 });

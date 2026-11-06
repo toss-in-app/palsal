@@ -1,7 +1,8 @@
 import { colors } from '@toss/tds-colors';
 import { Button, SegmentedControl, Text } from '@toss/tds-mobile';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
+import { ChartViewer } from '../components/ChartViewer';
 import { Icon, type IconName } from '../components/Icon';
 import { PriceChart } from '../components/PriceChart';
 import { RsiChart } from '../components/RsiChart';
@@ -12,6 +13,7 @@ import { eventTerm, eventTitle, stockEvents, type StockEvent } from '../lib/even
 import { BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
 import { changeColor, DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
 import type { Interval } from '../lib/series';
+import { overlayActive, pushOverlay } from '../lib/router';
 import { quoteTimeOf } from '../data/types';
 import { barsWithQuote, isStale, loadCards, retryCard, type CardsState } from '../state/cards';
 import { watchId, type WatchItem } from '../state/watch';
@@ -33,6 +35,8 @@ export interface StockScreenProps {
 }
 
 const tabular = { fontVariantNumeric: 'tabular-nums' } as const;
+/** 차트를 감싼 버튼 — 누르면 크게 보기 */
+const chartButton = { display: 'block', width: '100%', margin: 0, padding: 0, border: 0, background: 'none', font: 'inherit', textAlign: 'inherit', cursor: 'zoom-in' } as const;
 
 const EVENT_ICON: Record<StockEvent['kind'], [IconName, string]> = {
   rsi_low_enter: ['down', LOW_INK],
@@ -81,10 +85,38 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   const quote = entry?.quote ?? null;
   const barUnit = BAR_UNIT[interval];
   const inWatch = watched.some((w) => w.id === id);
-  const events = useMemo(() => {
-    const b = barsWithQuote(entry);
-    return b && entry?.analysis ? stockEvents(b, entry.analysis) : [];
-  }, [entry]);
+  const liveBars = useMemo(() => barsWithQuote(entry), [entry]);
+  const events = useMemo(() => (liveBars && entry?.analysis ? stockEvents(liveBars, entry.analysis) : []), [liveBars, entry]);
+
+  // 차트 크게 보기 — 히스토리 한 칸으로 쌓아 토스앱 뒤로가기가 이 화면으로 돌아오게(내 종목 편집 모드와 같은 방식)
+  const [chartOpen, setChartOpen] = useState(false);
+  const scrollBack = useRef<number | null>(null);
+  const openChart = (part: 'price' | 'rsi') => {
+    scrollBack.current = window.scrollY;
+    pushOverlay('chart');
+    setChartOpen(true);
+    logEvent('chart_open', { interval, from: part });
+  };
+  useEffect(() => {
+    if (!chartOpen) return;
+    const onPop = () => {
+      if (!overlayActive('chart')) setChartOpen(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [chartOpen]);
+  // 열 때는 맨 위, 닫으면 보던 자리로
+  useLayoutEffect(() => {
+    if (chartOpen) window.scrollTo(0, 0);
+    else if (scrollBack.current !== null) {
+      window.scrollTo(0, scrollBack.current);
+      scrollBack.current = null;
+    }
+  }, [chartOpen]);
+  const changeInterval = (v: Interval) => {
+    setBarInterval(v);
+    logEvent('interval_change', { interval: v });
+  };
 
   const price = a?.price ?? null;
   const prevClose = quote?.prev_close ?? (a && interval === '1d' && a.chart.c.length > 1 ? a.chart.c[a.chart.c.length - 2] : null);
@@ -96,6 +128,24 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   const delayed = market === 'KR' && quote?.market_state === 'REGULAR';
   const stale = isStale(quote);
   const legendRow = { display: 'flex', flexWrap: 'wrap', gap: '6px 8px', fontSize: 12, color: colors.grey700, margin: '8px 24px 0', alignItems: 'center' } as const;
+
+  if (chartOpen) {
+    return (
+      <ChartViewer
+        name={name}
+        interval={interval}
+        onInterval={changeInterval}
+        bars={liveBars}
+        crypto={market === 'CRYPTO'}
+        tz={tz}
+        unit={unit}
+        fx={fx}
+        failed={failed}
+        pending={pending}
+        onRetry={() => void retryCard(item)}
+      />
+    );
+  }
 
   return (
     <main style={{ paddingBottom: 40 }}>
@@ -150,14 +200,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
       </div>
 
       <div style={{ padding: '16px 20px 0' }}>
-        <SegmentedControl
-          value={interval}
-          onChange={(v) => {
-            setBarInterval(v as Interval);
-            logEvent('interval_change', { interval: v });
-          }}
-          aria-label="봉 단위"
-        >
+        <SegmentedControl value={interval} onChange={(v) => changeInterval(v as Interval)} aria-label="봉 단위">
           {INTERVALS.map((i) => (
             <SegmentedControl.Item key={i} value={i}>
               {INTERVAL_LABEL[i]}
@@ -179,7 +222,9 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
         <>
           <div style={{ margin: '14px 20px 0' }}>
             {a ? (
-              <PriceChart model={a.chart} tz={tz} interval={interval} width={350} height={200} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
+              <button type="button" aria-label="가격 차트 크게 보기" onClick={() => openChart('price')} style={chartButton}>
+                <PriceChart model={a.chart} tz={tz} interval={interval} width={350} height={200} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
+              </button>
             ) : (
               <span aria-hidden="true" style={{ display: 'block', height: 200, borderRadius: 12, background: colors.grey100 }} />
             )}
@@ -194,6 +239,16 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
             <TermWord onClick={() => setTerm('mark-div-peak')}>
               <span style={{ color: HIGH_INK }}>▼</span> 엇갈린 고점
             </TermWord>
+            {a ? (
+              <button
+                type="button"
+                onClick={() => openChart('price')}
+                style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 0', border: 0, background: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, color: colors.grey700, cursor: 'pointer' }}
+              >
+                <Icon name="expand" size={14} strokeWidth={2.2} />
+                크게 보기
+              </button>
+            ) : null}
           </div>
           <div style={{ ...legendRow, marginTop: 6 }}>
             <TermWord onClick={() => setTerm('ma120')}>
@@ -234,7 +289,9 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
           </div>
           <div style={{ margin: '0 20px' }}>
             {a ? (
-              <RsiChart rsi={a.chart.rsi} label={`${name} 최근 ${a.chart.c.length}${barUnit} RSI 흐름, 30과 70 선`} />
+              <button type="button" aria-label="RSI 차트 크게 보기" onClick={() => openChart('rsi')} style={chartButton}>
+                <RsiChart rsi={a.chart.rsi} label={`${name} 최근 ${a.chart.c.length}${barUnit} RSI 흐름, 30과 70 선`} />
+              </button>
             ) : (
               <span aria-hidden="true" style={{ display: 'block', height: 112, borderRadius: 12, background: colors.grey100 }} />
             )}

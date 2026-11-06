@@ -142,6 +142,45 @@ function maWindow(values: (number | null)[], start: number): (number | null)[] {
   return values.slice(start);
 }
 
+/** 크게 보기 차트: 받은 봉 전부 + 자세히 화면이 보여 주는 첫 봉 */
+export interface FullChartModel extends ChartModel {
+  /** 자세히 화면 차트의 첫 봉 번호(처음 열면 이 구간을 보여 줘요) */
+  detailStart: number;
+}
+
+/**
+ * 크게 보기(밀고 벌리는 차트)용 — 받은 봉 전부. 이동평균·RSI 는 받은 봉 전부로 계산해요.
+ * ▲△▼·엇갈림은 자세히 화면 구간 안이면 자세히와 같은 값(analyze 와 같은 최근 300봉 창),
+ * 그보다 앞은 받은 봉 전부로 찾은 값이에요 — 지난 봉으로 밀어도 표시가 끊기지 않게.
+ */
+export function fullChart(bars: Bars, crypto: boolean): FullChartModel | null {
+  const n = bars.c.length;
+  if (n < 2) return null;
+  const w0 = Math.max(0, n - ANALYSIS_BARS);
+  const wc = bars.c.slice(w0);
+  const wl = bars.l.slice(w0);
+  const wr = rsiSeries(wc);
+  const div = divergence(wc);
+  const s0 = w0 + (wc.length - displayLength(wc.length, div));
+  const fullRsi = rsiSeries(bars.c);
+  const lift = <T extends { index: number }>(list: T[]) => list.map((m) => ({ ...m, index: m.index + w0 })).filter((m) => m.index >= s0);
+  const before = <T extends { index: number }>(list: T[]) => list.filter((m) => m.index < s0);
+  const long = bars.interval === '1d';
+
+  return {
+    t: bars.t,
+    c: bars.c,
+    ma120: sma(bars.c, 120),
+    ma200: long ? sma(bars.c, 200) : null,
+    ma50w: long ? sma(bars.c, crypto ? 350 : 250) : null,
+    rsi: fullRsi,
+    lowMarks: [...(s0 > 0 ? before(lowMarks(bars.l, fullRsi, rsiLowSeries(bars.c, bars.l))) : []), ...lift(lowMarks(wl, wr, rsiLowSeries(wc, wl)))],
+    peakMarks: [...(s0 > 0 ? before(peakMarks(bars.c, fullRsi)) : []), ...lift(peakMarks(wc, wr))],
+    divergence: div ? { ...div, from: div.from + w0, to: div.to + w0 } : null,
+    detailStart: s0,
+  };
+}
+
 /**
  * 카드·자세히 화면이 쓰는 값 전부. crypto 면 50주선을 350일로(코인은 주 7일).
  * ▲△▼·엇갈림·교차는 원본처럼 최근 300봉 안에서 찾고, 머리의 RSI는 받은 봉 전부로 계산해요.

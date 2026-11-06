@@ -1,6 +1,7 @@
 import { colors } from '@toss/tds-colors';
 import { memo, useId } from 'react';
 
+import { axisText, textWidth } from '../lib/chartText';
 import { exchangeDay, type ChartModel, type ExchangeTz, type Interval } from '../lib/series';
 import { DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP } from '../lib/palette';
 import { niceTicks } from '../lib/ticks';
@@ -18,14 +19,6 @@ export interface PriceChartProps {
 const PL = 2;
 const PT = 12;
 const PB = 22;
-/** 눈금 글자(11px) 한 자 폭 어림 — 쉼표·점은 좁게 */
-const textWidth = (s: string) => [...s].reduce((w, ch) => w + (ch === ',' || ch === '.' ? 3 : 6.6), 0);
-
-function axisText(v: number): string {
-  const a = Math.abs(v);
-  const d = a >= 100 ? 0 : a >= 1 ? 2 : 4;
-  return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-}
 
 /** 연속된 값만 이어서 선 하나씩(앞부분 null 은 건너뛰어요) */
 function linePath(values: (number | null)[], x: (i: number) => number, y: (v: number) => number): string {

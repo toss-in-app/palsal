@@ -1,5 +1,5 @@
 import { TDSMobileAITProvider } from '@toss/tds-mobile-ait';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { bundledContent, symbolIndex } from '../content';
@@ -83,5 +83,59 @@ describe('StockScreen', () => {
     const h = renderStock([{ id: '035720.KS|1d', symbol: '035720.KS', interval: '1d', addedAt: 0 }]);
     fireEvent.click(screen.getByRole('button', { name: '내 종목에서 빼기' }));
     expect(h.onRemove).toHaveBeenCalledWith('035720.KS|1d');
+  });
+});
+
+describe('차트 크게 보기', () => {
+  const hint = /옆으로 밀면 지난 봉이 보이고/;
+  const chart = () => screen.getByRole('img', { name: /카카오 일봉 차트/ });
+
+  it('차트를 누르면 열리고, 토스앱 뒤로가기(히스토리 한 칸)로 닫혀요', async () => {
+    renderStock();
+    fireEvent.click(screen.getByRole('button', { name: '가격 차트 크게 보기' }));
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(window.history.state).toMatchObject({ overlay: 'chart' });
+    // 처음엔 자세히 차트와 같은 최근 180봉
+    expect(chart()).toHaveAccessibleName(/까지 180일$/);
+    await act(async () => {
+      window.history.back();
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'RSI 차트 크게 보기' })).toBeInTheDocument();
+  });
+
+  it('확대·축소 버튼 · 키보드로 보이는 봉 수와 구간이 바뀌어요', () => {
+    renderStock();
+    fireEvent.click(screen.getByRole('button', { name: '크게 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: '확대' }));
+    expect(chart()).toHaveAccessibleName(/까지 120일$/);
+    fireEvent.click(screen.getByRole('button', { name: '축소' }));
+    fireEvent.click(screen.getByRole('button', { name: '축소' }));
+    expect(chart()).toHaveAccessibleName(/까지 270일$/);
+    fireEvent.click(screen.getByRole('button', { name: '축소' }));
+    expect(chart()).toHaveAccessibleName(/까지 320일$/);
+    expect(screen.getByRole('button', { name: '축소' })).toBeDisabled();
+    // 왼쪽 화살표 = 지난 봉 쪽으로 → '최근으로'가 생기고, 누르면 돌아와요
+    fireEvent.click(screen.getByRole('button', { name: '확대' }));
+    expect(screen.queryByRole('button', { name: '최근으로' })).not.toBeInTheDocument();
+    fireEvent.keyDown(chart(), { key: 'ArrowLeft' });
+    fireEvent.click(screen.getByRole('button', { name: '최근으로' }));
+    expect(screen.queryByRole('button', { name: '최근으로' })).not.toBeInTheDocument();
+  });
+
+  it('짧게 누르면 그 봉의 값, 같은 자리를 한 번 더 누르면 최신 봉으로', () => {
+    renderStock();
+    fireEvent.click(screen.getByRole('button', { name: 'RSI 차트 크게 보기' }));
+    const last = screen.getByText('1월 16일'); // 최신 봉(320번째 날, 2026-01-16)
+    expect(last).toBeInTheDocument();
+    const tap = (clientX: number) => {
+      fireEvent.pointerDown(chart(), { pointerId: 1, pointerType: 'touch', clientX, clientY: 100, button: 0 });
+      fireEvent.pointerUp(chart(), { pointerId: 1, pointerType: 'touch', clientX, clientY: 100, button: 0 });
+    };
+    tap(2); // 그래프 왼쪽 끝 = 보이는 첫 봉(141번째 날)
+    expect(screen.getByText('2025년 7월 21일')).toBeInTheDocument();
+    tap(2);
+    expect(screen.getByText('1월 16일')).toBeInTheDocument();
   });
 });

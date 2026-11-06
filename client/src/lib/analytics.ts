@@ -1,6 +1,6 @@
 import { Analytics } from '@apps-in-toss/web-framework';
 
-/** 분석 이벤트 이름 (contract/events.md 22개). 여기 없는 이름은 보내지 않아요. */
+/** 분석 이벤트 이름 (contract/events.md 23개). 여기 없는 이름은 보내지 않아요. */
 export type EventName =
   | 'home_view'
   | 'change_banner_view'
@@ -9,6 +9,7 @@ export type EventName =
   | 'card_load'
   | 'stock_view'
   | 'interval_change'
+  | 'chart_open'
   | 'term_open'
   | 'add_open'
   | 'search'
