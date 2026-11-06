@@ -1,19 +1,17 @@
 import { colors } from '@toss/tds-colors';
 import { Button, SegmentedControl, Text } from '@toss/tds-mobile';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 
-import { ChartViewer } from '../components/ChartViewer';
 import { Icon, type IconName } from '../components/Icon';
-import { PriceChart } from '../components/PriceChart';
-import { RsiChart } from '../components/RsiChart';
+import { StockChart, type ZoomControls } from '../components/StockChart';
 import { TermSheet, TermWord } from '../components/TermSheet';
 import type { ContentFile, SymbolEntry } from '../content';
 import { logEvent } from '../lib/analytics';
 import { eventTerm, eventTitle, stockEvents, type StockEvent } from '../lib/events';
-import { BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
+import { BAR_UNIT, codeLine, formatBarDate, formatBarPeriod, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
+import { zoneOf } from '../lib/indicators';
 import { changeColor, DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
-import type { Interval } from '../lib/series';
-import { overlayActive, pushOverlay } from '../lib/router';
+import { fullChart, type Interval } from '../lib/series';
 import { quoteTimeOf } from '../data/types';
 import { barsWithQuote, isStale, loadCards, retryCard, type CardsState } from '../state/cards';
 import { watchId, type WatchItem } from '../state/watch';
@@ -35,8 +33,23 @@ export interface StockScreenProps {
 }
 
 const tabular = { fontVariantNumeric: 'tabular-nums' } as const;
-/** 차트를 감싼 버튼 — 누르면 크게 보기 */
-const chartButton = { display: 'block', width: '100%', margin: 0, padding: 0, border: 0, background: 'none', font: 'inherit', textAlign: 'inherit', cursor: 'zoom-in' } as const;
+/** 화면 읽기 프로그램에만 읽히는 글(차트에서 고른 봉 값) */
+const srOnly: CSSProperties = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' };
+
+function ZoomButton({ label, icon, enabled, onClick }: { label: string; icon: IconName; enabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={!enabled}
+      onClick={onClick}
+      className="tap tap-soft"
+      style={{ width: 32, height: 32, borderRadius: 16, border: 0, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: colors.grey100, color: enabled ? colors.grey800 : colors.grey400, cursor: enabled ? 'pointer' : 'default' }}
+    >
+      <Icon name={icon} size={16} />
+    </button>
+  );
+}
 
 const EVENT_ICON: Record<StockEvent['kind'], [IconName, string]> = {
   rsi_low_enter: ['down', LOW_INK],
@@ -59,7 +72,10 @@ function Section({ title, children }: { title: ReactNode; children: ReactNode })
   );
 }
 
-/** 종목 자세히(시안 v1 C2): 가격·등락 → 봉 단위 → 가격 차트 → RSI 흐름 → 범례 → 이 종목 소식 → 담기/빼기 */
+/**
+ * 종목 자세히(시안 v1 C2): 가격·등락 → 봉 단위 → 가격 차트 → 범례 → RSI 흐름 → 이 종목 소식 → 담기/빼기.
+ * 차트는 그 자리에서 밀고 벌리고 누르고 있으면 그 봉 값(2026-11-06 '들어가는 화면 없이 바로') — 그동안 위 가격 · RSI 자리가 그 봉 값이에요.
+ */
 export function StockScreen({ symbol, interval: initial, info, cards, watched, glossary, disclaimer, onAdd, onRemove, from = 'link' }: StockScreenProps) {
   const [interval, setBarInterval] = useState<Interval>(initial);
   const [term, setTerm] = useState<string | null>(null);
@@ -87,44 +103,28 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   const inWatch = watched.some((w) => w.id === id);
   const liveBars = useMemo(() => barsWithQuote(entry), [entry]);
   const events = useMemo(() => (liveBars && entry?.analysis ? stockEvents(liveBars, entry.analysis) : []), [liveBars, entry]);
-
-  // 차트 크게 보기 — 히스토리 한 칸으로 쌓아 토스앱 뒤로가기가 이 화면으로 돌아오게(내 종목 편집 모드와 같은 방식)
-  const [chartOpen, setChartOpen] = useState(false);
-  const scrollBack = useRef<number | null>(null);
-  /** 큰 차트를 닫고 돌아왔는지(자세히가 살짝 나타나요) */
-  const backFromChart = useRef(false);
-  const openChart = (part: 'price' | 'rsi') => {
-    scrollBack.current = window.scrollY;
-    pushOverlay('chart');
-    setChartOpen(true);
-    logEvent('chart_open', { interval, from: part });
-  };
-  useEffect(() => {
-    if (!chartOpen) return;
-    const onPop = () => {
-      if (overlayActive('chart')) return;
-      backFromChart.current = true;
-      setChartOpen(false);
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, [chartOpen]);
-  // 열 때는 맨 위, 닫으면 보던 자리로
-  useLayoutEffect(() => {
-    if (chartOpen) window.scrollTo(0, 0);
-    else if (scrollBack.current !== null) {
-      window.scrollTo(0, scrollBack.current);
-      scrollBack.current = null;
-    }
-  }, [chartOpen]);
+  /** 움직이는 차트용 — 받은 봉 전부(처음 보이는 구간은 예전 자세히 차트와 같아요) */
+  const full = useMemo(() => (liveBars ? fullChart(liveBars, marketOf(symbol, info) === 'CRYPTO') : null), [liveBars, symbol, info]);
+  /** 차트에서 고른 봉(누르고 있거나 짧게 누름). null 이면 최신 */
+  const [point, setPoint] = useState<number | null>(null);
   const changeInterval = (v: Interval) => {
+    setPoint(null);
     setBarInterval(v);
     logEvent('interval_change', { interval: v });
   };
 
-  const price = a?.price ?? null;
-  const prevClose = quote?.prev_close ?? (a && interval === '1d' && a.chart.c.length > 1 ? a.chart.c[a.chart.c.length - 2] : null);
-  const zone = a?.zone ?? null;
+  // 차트에서 봉을 고르면 위 가격 · RSI 가 그 봉 값(전 봉 대비)이에요
+  const picked = point !== null && full && point < full.c.length ? point : null;
+  const price = picked !== null ? full!.c[picked] : (a?.price ?? null);
+  const prevClose =
+    picked !== null
+      ? picked > 0
+        ? full!.c[picked - 1]
+        : null
+      : (quote?.prev_close ?? (a && interval === '1d' && a.chart.c.length > 1 ? a.chart.c[a.chart.c.length - 2] : null));
+  const rsiNow = picked !== null ? full!.rsi[picked] : (a?.rsi ?? null);
+  const zone = picked !== null ? (rsiNow === null ? null : zoneOf(Math.round(rsiNow * 10) / 10)) : (a?.zone ?? null);
+  const pickedLabel = picked !== null ? formatBarPeriod(full!.t[picked], tz, interval) : null;
   const failed = !a && entry?.status === 'error';
   const pending = !a && entry?.status === 'pending';
   const at = quote ? quoteTimeOf(quote) : null;
@@ -133,26 +133,70 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   const stale = isStale(quote);
   const legendRow = { display: 'flex', flexWrap: 'wrap', gap: '6px 8px', fontSize: 12, color: colors.grey700, margin: '8px 24px 0', alignItems: 'center' } as const;
 
-  if (chartOpen) {
-    return (
-      <ChartViewer
-        name={name}
-        interval={interval}
-        onInterval={changeInterval}
-        bars={liveBars}
-        crypto={market === 'CRYPTO'}
-        tz={tz}
-        unit={unit}
-        fx={fx}
-        failed={failed}
-        pending={pending}
-        onRetry={() => void retryCard(item)}
-      />
-    );
-  }
+  // 가격 칸과 RSI 칸 사이: 범례 두 줄(첫 줄 오른쪽에 확대·축소) · RSI 머리(고른 봉이면 그 봉 RSI)
+  const legend = (zoom: ZoomControls | null) => (
+    <>
+      <div style={legendRow}>
+        <TermWord onClick={() => setTerm('mark-close-below')}>
+          <span style={{ color: LOW_INK }}>▲</span> 30 아래 마감
+        </TermWord>
+        <TermWord onClick={() => setTerm('mark-intraday-below')}>
+          <span style={{ color: LOW_INK }}>△</span> 장중만
+        </TermWord>
+        <TermWord onClick={() => setTerm('mark-div-peak')}>
+          <span style={{ color: HIGH_INK }}>▼</span> 엇갈린 고점
+        </TermWord>
+        {zoom ? (
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
+            <ZoomButton label="축소" icon="minus" enabled={zoom.canZoomOut} onClick={zoom.zoomOut} />
+            <ZoomButton label="확대" icon="plus" enabled={zoom.canZoomIn} onClick={zoom.zoomIn} />
+          </span>
+        ) : null}
+      </div>
+      <div style={{ ...legendRow, marginTop: 6 }}>
+        <TermWord onClick={() => setTerm('ma120')}>
+          <span style={{ color: MA_120 }}>┄</span> {`120${barUnit}선`}
+        </TermWord>
+        {interval === '1d' ? (
+          <>
+            <TermWord onClick={() => setTerm('ma200')}>
+              <span style={{ color: MA_200 }}>—</span> 200일선
+            </TermWord>
+            <TermWord onClick={() => setTerm('ma50w')}>
+              <span style={{ color: MA_50W }}>—</span> 50주선
+            </TermWord>
+          </>
+        ) : null}
+      </div>
+    </>
+  );
+  const rsiHead = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '24px 24px 8px' }}>
+      <Text typography="t5" fontWeight="bold" color={colors.grey900}>
+        <TermWord label="RSI 14 뜻 보기" onClick={() => setTerm('rsi14')}>
+          RSI 14
+        </TermWord>
+      </Text>
+      <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {rsiNow !== null && zone ? (
+          <>
+            <span style={{ fontSize: 24, fontWeight: 700, color: zoneInk(zone), ...tabular }}>{formatRsi(rsiNow)}</span>
+            <button
+              type="button"
+              onClick={() => setTerm(`zone-${zone}`)}
+              className="tap"
+              style={{ border: 0, cursor: 'pointer', font: 'inherit', fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '3px 7px', color: zoneInk(zone), background: zoneBg(zone) }}
+            >
+              {ZONE_LABEL[zone]}
+            </button>
+          </>
+        ) : null}
+      </span>
+    </div>
+  );
 
   return (
-    <main className={backFromChart.current ? 'screen-fade' : undefined} style={{ paddingBottom: 40 }}>
+    <main style={{ paddingBottom: 40 }}>
       <div style={{ padding: '12px 24px 0' }}>
         <Text display="block" typography="t7" color={colors.grey600}>
           {codeLine(symbol, info)}
@@ -174,33 +218,45 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
         ) : (
           <span aria-hidden="true" style={{ display: 'block', width: 160, height: 30, borderRadius: 8, background: colors.grey100, marginTop: 8 }} />
         )}
-        {quote?.ext_session && quote.ext_price && quote.ext_change_pct !== null ? (
-          <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
-            <TermWord label="프리마켓·애프터마켓 뜻 보기" onClick={() => setTerm('ext-hours')}>
-              {quote.ext_session === 'pre' ? '프리마켓' : '애프터마켓'}
-            </TermWord>{' '}
-            {formatPrice(quote.ext_price, unit, fx)} <span style={{ color: changeColor(quote.ext_change_pct) }}>{formatPct(quote.ext_change_pct)}</span>
+        {pickedLabel !== null ? (
+          // 차트에서 고른 봉: 위 가격은 그 봉 종가(전 봉 대비), 아래 줄은 그 봉 날짜
+          <Text display="block" typography="t7" fontWeight="semibold" color={colors.grey700} style={{ marginTop: 4, ...tabular }}>
+            {pickedLabel}
           </Text>
-        ) : null}
-        {a ? (
-          <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
-            <TermWord label="5년 최고가 뜻 보기" onClick={() => setTerm('high5y')}>
-              5년 최고가
-            </TermWord>
-            {a.fromHigh >= 0 ? (
-              '를 새로 썼어요'
-            ) : (
-              <>
-                {`보다 ${a.fromHigh.toFixed(1)}%`}
-              </>
-            )}
-          </Text>
-        ) : null}
-        {at ? (
-          <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey600} style={{ marginTop: 4, ...tabular }}>
-            {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준${delayed ? ' · 약 20분 늦은 시세' : ''}`}
-          </Text>
-        ) : null}
+        ) : (
+          <>
+          {quote?.ext_session && quote.ext_price && quote.ext_change_pct !== null ? (
+            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              <TermWord label="프리마켓·애프터마켓 뜻 보기" onClick={() => setTerm('ext-hours')}>
+                {quote.ext_session === 'pre' ? '프리마켓' : '애프터마켓'}
+              </TermWord>{' '}
+              {formatPrice(quote.ext_price, unit, fx)} <span style={{ color: changeColor(quote.ext_change_pct) }}>{formatPct(quote.ext_change_pct)}</span>
+            </Text>
+          ) : null}
+          {a ? (
+            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              <TermWord label="5년 최고가 뜻 보기" onClick={() => setTerm('high5y')}>
+                5년 최고가
+              </TermWord>
+              {a.fromHigh >= 0 ? (
+                '를 새로 썼어요'
+              ) : (
+                <>
+                  {`보다 ${a.fromHigh.toFixed(1)}%`}
+                </>
+              )}
+            </Text>
+          ) : null}
+          {at ? (
+            <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준${delayed ? ' · 약 20분 늦은 시세' : ''}`}
+            </Text>
+          ) : null}
+          </>
+        )}
+        <span role="status" style={srOnly}>
+          {pickedLabel !== null && price !== null ? `${pickedLabel} 종가 ${formatPrice(price, unit, fx)}${rsiNow !== null ? `, RSI ${formatRsi(rsiNow)}` : ''}` : ''}
+        </span>
       </div>
 
       <div style={{ padding: '16px 20px 0' }}>
@@ -224,84 +280,35 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
         </div>
       ) : (
         <>
-          <div style={{ margin: '14px 20px 0' }}>
-            {a ? (
-              <button type="button" aria-label="가격 차트 크게 보기" onClick={() => openChart('price')} className="tap" style={chartButton}>
-                <PriceChart model={a.chart} tz={tz} interval={interval} width={350} height={200} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
-              </button>
-            ) : (
-              <span aria-hidden="true" style={{ display: 'block', height: 200, borderRadius: 12, background: colors.grey100 }} />
-            )}
-          </div>
-          <div style={legendRow}>
-            <TermWord onClick={() => setTerm('mark-close-below')}>
-              <span style={{ color: LOW_INK }}>▲</span> 30 아래 마감
-            </TermWord>
-            <TermWord onClick={() => setTerm('mark-intraday-below')}>
-              <span style={{ color: LOW_INK }}>△</span> 장중만
-            </TermWord>
-            <TermWord onClick={() => setTerm('mark-div-peak')}>
-              <span style={{ color: HIGH_INK }}>▼</span> 엇갈린 고점
-            </TermWord>
-            {a ? (
-              <button
-                type="button"
-                onClick={() => openChart('price')}
-                className="tap"
-                style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 0', border: 0, background: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, color: colors.grey700, cursor: 'pointer' }}
-              >
-                <Icon name="expand" size={14} strokeWidth={2.2} />
-                크게 보기
-              </button>
-            ) : null}
-          </div>
-          <div style={{ ...legendRow, marginTop: 6 }}>
-            <TermWord onClick={() => setTerm('ma120')}>
-              <span style={{ color: MA_120 }}>┄</span> {`120${barUnit}선`}
-            </TermWord>
-            {interval === '1d' ? (
-              <>
-                <TermWord onClick={() => setTerm('ma200')}>
-                  <span style={{ color: MA_200 }}>—</span> 200일선
-                </TermWord>
-                <TermWord onClick={() => setTerm('ma50w')}>
-                  <span style={{ color: MA_50W }}>—</span> 50주선
-                </TermWord>
-              </>
-            ) : null}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '24px 24px 8px' }}>
-            <Text typography="t5" fontWeight="bold" color={colors.grey900}>
-              <TermWord label="RSI 14 뜻 보기" onClick={() => setTerm('rsi14')}>
-                RSI 14
-              </TermWord>
-            </Text>
-            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {a?.rsi !== null && a?.rsi !== undefined && zone ? (
+          {full && a ? (
+            <StockChart
+              key={interval}
+              model={full}
+              name={name}
+              tz={tz}
+              interval={interval}
+              point={picked}
+              onPoint={setPoint}
+              onUse={(kind) => logEvent('chart_use', { interval, kind })}
+              between={(zoom) => (
                 <>
-                  <span style={{ fontSize: 24, fontWeight: 700, color: zoneInk(zone), ...tabular }}>{formatRsi(a.rsi)}</span>
-                  <button
-                    type="button"
-                    onClick={() => setTerm(`zone-${zone}`)}
-                    className="tap"
-                    style={{ border: 0, cursor: 'pointer', font: 'inherit', fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '3px 7px', color: zoneInk(zone), background: zoneBg(zone) }}
-                  >
-                    {ZONE_LABEL[zone]}
-                  </button>
+                  {legend(zoom)}
+                  {rsiHead}
                 </>
-              ) : null}
-            </span>
-          </div>
-          <div style={{ margin: '0 20px' }}>
-            {a ? (
-              <button type="button" aria-label="RSI 차트 크게 보기" onClick={() => openChart('rsi')} className="tap" style={chartButton}>
-                <RsiChart rsi={a.chart.rsi} label={`${name} 최근 ${a.chart.c.length}${barUnit} RSI 흐름, 30과 70 선`} />
-              </button>
-            ) : (
-              <span aria-hidden="true" style={{ display: 'block', height: 112, borderRadius: 12, background: colors.grey100 }} />
-            )}
-          </div>
+              )}
+            />
+          ) : (
+            <>
+              <div style={{ margin: '14px 20px 0' }}>
+                <span aria-hidden="true" className="skeleton" style={{ display: 'block', height: 222, borderRadius: 12 }} />
+              </div>
+              {legend(null)}
+              {rsiHead}
+              <div style={{ margin: '0 20px' }}>
+                <span aria-hidden="true" className="skeleton" style={{ display: 'block', height: 112, borderRadius: 12 }} />
+              </div>
+            </>
+          )}
           {pending ? (
             <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '12px 24px 0' }}>
               처음 보는 종목이라 시세를 받는 중이에요

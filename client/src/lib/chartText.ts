@@ -1,4 +1,4 @@
-/** 차트 글자 도우미 — 자세히 차트(PriceChart)와 크게 보기(ZoomChart)가 함께 써요 */
+/** 차트 글자 도우미 — 카드 차트(PriceChart)와 자세히의 움직이는 차트(ChartPanels)가 함께 써요 */
 
 /** 눈금 글자(11px) 한 자 폭 어림 — 쉼표·점은 좁게 */
 export const textWidth = (s: string) => [...s].reduce((w, ch) => w + (ch === ',' || ch === '.' ? 3 : 6.6), 0);

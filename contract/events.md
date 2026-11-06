@@ -13,7 +13,7 @@
 | `card_load` | 카드 묶음을 받아 그렸을 때(스크롤 한 번) | `n`(받은 종목 수), `stale`(저장본 수), `error`(실패 수) |
 | `stock_view` | 종목 자세히가 보일 때 | `symbol`, `market`(KR/US/CRYPTO/FX), `interval`, `from`(card/banner/changes/market/link) |
 | `interval_change` | 자세히에서 봉 단위를 바꿀 때 | `interval` |
-| `chart_open` | 자세히에서 차트를 눌러 크게 볼 때(2026-11-06 추가) | `interval`, `from`(price/rsi) |
+| `chart_use` | 자세히 차트를 그 자리에서 처음 밀었을 때 · 벌렸을 때 · 봉 값을 봤을 때(화면마다 종류별 1회, 2026-11-06 — 같은 날 넣었던 `chart_open` 대신) | `interval`, `kind`(pan/zoom/point) |
 | `term_open` | 용어 시트를 열 때 | `term`(content.json glossary 키) |
 | `add_open` | 종목 담기 화면 | `from`(header/list_end/empty) |
 | `search` | 검색 결과가 보일 때(입력 멈춘 뒤 1회) | `tab`(kr/us/crypto/fx), `hasQuery`, `results`(0~) |

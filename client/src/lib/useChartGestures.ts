@@ -19,8 +19,9 @@ export interface ChartGestureOptions {
 }
 
 /**
- * 차트 손짓 — 한 손가락으로 밀기(놓으면 조금 더 미끄러짐) · 두 손가락으로 벌리기/오므리기 · 길게 누르기 · 짧게 누르기.
- * 마우스 휠(개발·PC)은 위아래 = 크게/작게, 옆 = 밀기. 포인터 이벤트로 받고, 요소에 touch-action: none 을 둬야 해요.
+ * 차트 손짓 — 한 손가락으로 옆으로 밀기(놓으면 조금 더 미끄러짐) · 두 손가락으로 벌리기/오므리기 · 길게 누르기 · 짧게 누르기.
+ * 화면 안의 차트라 위아래로 미는 건 화면 스크롤에 맡겨요: 요소에 touch-action: pan-y, 위아래로 먼저 움직이면 손대지 않아요.
+ * 마우스 휠(PC)은 위아래면 화면 스크롤, 옆으로 밀면 차트 밀기, Ctrl(트랙패드 벌리기)이면 크게/작게.
  */
 export function useChartGestures(ref: RefObject<HTMLElement | null>, options: ChartGestureOptions): void {
   const opts = useRef(options);
@@ -127,6 +128,12 @@ export function useChartGestures(ref: RefObject<HTMLElement | null>, options: Ch
       }
       if (mode === 'press' && Math.hypot(e.clientX - down.x, e.clientY - down.y) > SLOP) {
         stopTimer();
+        // 위아래로 먼저 움직이면 화면 스크롤 — 브라우저가 가져가게 놔둬요
+        if (Math.abs(e.clientY - down.y) > Math.abs(e.clientX - down.x)) {
+          mode = 'idle';
+          pointers.delete(e.pointerId);
+          return;
+        }
         mode = 'pan';
         opts.current.onPoint(null, 'clear');
       }
@@ -163,22 +170,29 @@ export function useChartGestures(ref: RefObject<HTMLElement | null>, options: Ch
       mode = 'idle';
     };
     const onWheel = (e: WheelEvent) => {
+      const sideways = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      // 그냥 위아래 휠은 화면 스크롤
+      if (!sideways && !e.ctrlKey) return;
       e.preventDefault();
       stopFling();
       const { n, plot, getView, setView, onPoint } = opts.current;
       onPoint(null, 'clear');
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) setView(panView(getView(), -e.deltaX, plot.width, n));
-      else setView(zoomView(getView(), Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.002)), Math.min(1, Math.max(0, frac(e.clientX))), n));
+      if (sideways) setView(panView(getView(), -e.deltaX, plot.width, n));
+      else setView(zoomView(getView(), Math.exp(-e.deltaY * 0.01), Math.min(1, Math.max(0, frac(e.clientX))), n));
     };
     const block = (e: Event) => e.preventDefault();
+    // 차트를 밀거나 벌리거나 값을 보는 동안만 화면이 따라 움직이지 않게(그 밖엔 위아래 스크롤 그대로)
+    const blockWhileActive = (e: Event) => {
+      if ((mode === 'pan' || mode === 'pinch' || mode === 'hold') && e.cancelable) e.preventDefault();
+    };
 
     el.addEventListener('pointerdown', onDown);
     el.addEventListener('pointermove', onMove);
     el.addEventListener('pointerup', onUp);
     el.addEventListener('pointercancel', onUp);
     el.addEventListener('wheel', onWheel, { passive: false });
-    // iOS: 손가락 두 개가 페이지 확대로, 밀기가 뒤 화면 스크롤로 새지 않게
-    el.addEventListener('touchmove', block, { passive: false });
+    // iOS: 손가락 두 개가 페이지 확대로, 차트 밀기가 화면 스크롤로 새지 않게
+    el.addEventListener('touchmove', blockWhileActive, { passive: false });
     el.addEventListener('gesturestart', block);
     el.addEventListener('contextmenu', block);
     return () => {
@@ -187,7 +201,7 @@ export function useChartGestures(ref: RefObject<HTMLElement | null>, options: Ch
       el.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointercancel', onUp);
       el.removeEventListener('wheel', onWheel);
-      el.removeEventListener('touchmove', block);
+      el.removeEventListener('touchmove', blockWhileActive);
       el.removeEventListener('gesturestart', block);
       el.removeEventListener('contextmenu', block);
       stopTimer();

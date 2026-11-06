@@ -9,7 +9,7 @@ export type EventName =
   | 'card_load'
   | 'stock_view'
   | 'interval_change'
-  | 'chart_open'
+  | 'chart_use'
   | 'term_open'
   | 'add_open'
   | 'search'

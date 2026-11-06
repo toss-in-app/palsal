@@ -1,7 +1,7 @@
 import { exchangeDay, type ExchangeTz, type Interval } from './series';
 
 /*
- * 차트 크게 보기 — 보이는 구간 계산(순수 함수). 봉 번호는 0(가장 오래된 봉) ~ n-1(최신).
+ * 종목 자세히의 움직이는 차트 — 보이는 구간 계산(순수 함수). 봉 번호는 0(가장 오래된 봉) ~ n-1(최신).
  * end 는 오른쪽 끝 봉 번호(밀 때 소수도 돼요), count 는 그래프 너비에 들어가는 봉 수(벌리면 줄어요).
  * 봉 i 의 자리: (i - 시작) / (count - 1) — 0 이 그래프 왼쪽 끝, 1 이 오른쪽 끝.
  */
@@ -14,15 +14,8 @@ export interface ChartView {
 /** 가장 크게 볼 때도 화면에 남기는 봉 수 */
 export const MIN_VISIBLE = 20;
 
-/** 크게 보기 그림의 왼쪽 여백(px) — 그림(ZoomChart)과 손짓(plot.left)이 같은 값을 써요 */
+/** 차트 그림의 왼쪽 여백(px) — 그림(ChartPanels)과 손짓(plot.left)이 같은 값을 써요 */
 export const ZOOM_PL = 2;
-
-/** 크게 보기 그림의 세로 배치(px): 가격 칸 · 날짜 줄(22) · 틈(12) · RSI 칸(높이의 27%, 최소 72) */
-export function zoomLayout(height: number) {
-  const rsiH = Math.max(72, Math.round(height * 0.27));
-  const priceBottom = height - rsiH - 12 - 22;
-  return { priceTop: 10, priceBottom, rsiTop: priceBottom + 22 + 12, rsiBottom: height - 4 };
-}
 
 const clampCount = (count: number, n: number) => Math.min(n, Math.max(Math.min(MIN_VISIBLE, n), count));
 
