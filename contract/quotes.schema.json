@@ -8,18 +8,86 @@
   "items": {
     "type": "object",
     "additionalProperties": false,
-    "required": ["symbol", "price", "prev_close", "change_pct", "market_state", "ext_session", "ext_price", "ext_change_pct", "source", "fetched_at"],
+    "required": [
+      "symbol",
+      "price",
+      "prev_close",
+      "change_pct",
+      "market_state",
+      "ext_session",
+      "ext_price",
+      "ext_change_pct",
+      "source",
+      "fetched_at",
+      "market_time"
+    ],
     "properties": {
-      "symbol": { "type": "string", "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}$" },
-      "price": { "type": "number", "exclusiveMinimum": 0 },
-      "prev_close": { "type": "number", "exclusiveMinimum": 0 },
-      "change_pct": { "type": "number", "minimum": -100, "maximum": 1000 },
-      "market_state": { "enum": ["PRE", "REGULAR", "POST", "CLOSED", "24H"] },
-      "ext_session": { "enum": [null, "pre", "post"], "description": "미국 주식 프리·애프터 값이 있을 때" },
-      "ext_price": { "type": ["number", "null"], "exclusiveMinimum": 0 },
-      "ext_change_pct": { "type": ["number", "null"] },
-      "source": { "enum": ["yahoo", "binance", "frankfurter"] },
-      "fetched_at": { "type": "string", "format": "date-time" }
+      "symbol": {
+        "type": "string",
+        "pattern": "^[\\^]?[A-Z0-9.=\\-]{1,20}$"
+      },
+      "price": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "prev_close": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "change_pct": {
+        "type": "number",
+        "minimum": -100,
+        "maximum": 1000
+      },
+      "market_state": {
+        "enum": [
+          "PRE",
+          "REGULAR",
+          "POST",
+          "CLOSED",
+          "24H"
+        ]
+      },
+      "ext_session": {
+        "enum": [
+          null,
+          "pre",
+          "post"
+        ],
+        "description": "미국 주식 프리·애프터 값이 있을 때"
+      },
+      "ext_price": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "exclusiveMinimum": 0
+      },
+      "ext_change_pct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "source": {
+        "enum": [
+          "yahoo",
+          "binance",
+          "frankfurter"
+        ]
+      },
+      "fetched_at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "market_time": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "format": "date-time",
+        "description": "원천의 마지막 체결 시각(프리·애프터 값이 있으면 그 시각). 한국 주식·지수는 야후가 약 20분 늦게 줘서 fetched_at 보다 20분쯤 이르다. 화면 '기준' 시각(v1.13)"
+      }
     }
   }
 }

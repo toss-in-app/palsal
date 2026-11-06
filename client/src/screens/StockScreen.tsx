@@ -12,6 +12,7 @@ import { eventTerm, eventTitle, stockEvents, type StockEvent } from '../lib/even
 import { BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
 import { changeColor, DOWN, HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
 import type { Interval } from '../lib/series';
+import { quoteTimeOf } from '../data/types';
 import { barsWithQuote, isStale, loadCards, retryCard, type CardsState } from '../state/cards';
 import { watchId, type WatchItem } from '../state/watch';
 
@@ -90,7 +91,9 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   const zone = a?.zone ?? null;
   const failed = !a && entry?.status === 'error';
   const pending = !a && entry?.status === 'pending';
-  const at = quote ? Date.parse(quote.fetched_at) : null;
+  const at = quote ? quoteTimeOf(quote) : null;
+  // 한국 주식·지수는 야후가 약 20분 늦게 줘요(장중에만 덧붙여요)
+  const delayed = market === 'KR' && quote?.market_state === 'REGULAR';
   const stale = isStale(quote);
   const legendRow = { display: 'flex', flexWrap: 'wrap', gap: '6px 8px', fontSize: 12, color: colors.grey700, margin: '8px 24px 0', alignItems: 'center' } as const;
 
@@ -141,7 +144,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
         ) : null}
         {at ? (
           <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey600} style={{ marginTop: 4, ...tabular }}>
-            {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준`}
+            {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준${delayed ? ' · 약 20분 늦은 시세' : ''}`}
           </Text>
         ) : null}
       </div>

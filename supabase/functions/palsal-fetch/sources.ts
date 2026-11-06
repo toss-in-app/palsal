@@ -1,14 +1,15 @@
 /**
- * 출처 어댑터 — 야후(비공식) · 바이낸스 · Frankfurter · alternative.me (계약 contract/server.md '출처 바꾸기').
+ * 출처 어댑터 — 야후(비공식: 주식·ETF·지수·환율) · 바이낸스(코인) · alternative.me(코인 공포탐욕) (계약 contract/server.md '출처 바꾸기').
  * 정직한 User-Agent 만 써요. 브라우저 흉내·쿠키 재사용·IP 돌리기 같은 차단 우회는 하지 않아요.
  * 모든 가격은 넣기 전에 반올림(계약 v1.9). 봉은 일·주·월 모두 5년(원본 RSIngTime 과 같은 범위, high5y = 그 종가 최댓값).
+ * 2026-11-06(계약 v1.13): 환율도 야후로(장중 5분마다, 예전엔 Frankfurter 하루 1번) · 현재가에 원천 체결 시각(market_time).
  */
-import { MAX_BARS, marketOfSymbol, roundPct, roundPrice, tzOfMarket, type Interval, type MarketState } from '../_shared/calc.ts';
+import { MAX_BARS, marketOfSymbol, roundPct, roundPrice, tzOfMarket, type Interval, type Market, type MarketState } from '../_shared/calc.ts';
 
 const UA = Deno.env.get('USER_AGENT') ?? 'palsal/1.0';
 const FIVE_YEARS_MS = 5 * 365.25 * 86_400_000;
 
-export type Source = 'yahoo' | 'binance' | 'frankfurter' | 'alternative';
+export type Source = 'yahoo' | 'binance' | 'alternative';
 
 export class SourceError extends Error {
   constructor(
@@ -29,8 +30,10 @@ export interface QuoteRow {
   ext_session: 'pre' | 'post' | null;
   ext_price: number | null;
   ext_change_pct: number | null;
-  source: 'yahoo' | 'binance' | 'frankfurter';
+  source: 'yahoo' | 'binance';
   fetched_at: string;
+  /** 원천의 마지막 체결 시각(프리·애프터 값이 있으면 그 시각). 한국 주식·지수는 야후가 약 20분 늦게 줘요 */
+  market_time: string | null;
 }
 
 export interface BarsRow {
@@ -39,7 +42,7 @@ export interface BarsRow {
   interval: Interval;
   currency: 'KRW' | 'USD' | 'JPY';
   tz: 'Asia/Seoul' | 'America/New_York' | 'UTC';
-  source: 'yahoo' | 'binance' | 'frankfurter';
+  source: 'yahoo' | 'binance';
   t: number[];
   c: number[];
   l: number[];
@@ -70,7 +73,7 @@ async function getJson(url: string, source: Source, timeoutMs = 15_000): Promise
 const iso = (ms: number) => new Date(ms).toISOString();
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
 
-function quoteFrom(symbol: string, price: number, prev: number, state: MarketState, source: QuoteRow['source'], now: number, ext?: { session: 'pre' | 'post'; price: number }): QuoteRow {
+function quoteFrom(symbol: string, price: number, prev: number, state: MarketState, source: QuoteRow['source'], now: number, marketTime: number | null, ext?: { session: 'pre' | 'post'; price: number }): QuoteRow {
   const p = roundPrice(symbol, price);
   const pc = roundPrice(symbol, prev);
   const e = ext ? roundPrice(symbol, ext.price) : null;
@@ -85,24 +88,55 @@ function quoteFrom(symbol: string, price: number, prev: number, state: MarketSta
     ext_change_pct: ext && e ? roundPct((e / p - 1) * 100) : null,
     source,
     fetched_at: iso(now),
+    market_time: marketTime ? iso(Math.min(marketTime, now)) : null,
   };
 }
 
-/** 봉 꼴 정리: 종가 없는 칸 빼고 · 시각 오름차순 · 반올림 · 최근 530 · high5y 는 5년 안 종가 최댓값 */
+/** 기간을 가르는 시간대 — 환율은 야후가 런던 시간으로 봉을 끊어요 */
+const PERIOD_TZ: Record<Market, string> = { KR: 'Asia/Seoul', US: 'America/New_York', CRYPTO: 'UTC', FX: 'Europe/London' };
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function localDay(ms: number, tz: string): string {
+  let f = dayFormatters.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    dayFormatters.set(tz, f);
+  }
+  return f.format(new Date(ms));
+}
+
+/** 그 날이 든 기간의 이름: 일봉 = 날짜, 주봉 = 그 주 월요일, 월봉 = 'YYYY-MM' */
+function periodKey(day: string, interval: Interval): string {
+  if (interval === '1d') return day;
+  if (interval === '1mo') return day.slice(0, 7);
+  const d = new Date(`${day}T00:00:00Z`);
+  return new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * 봉 꼴 정리: 종가 없는 칸 빼고 · 시각 오름차순 · 반올림 · 최근 530 · high5y 는 5년 안 종가 최댓값.
+ * 같은 날·주·달 칸은 하나로 합쳐요(야후는 주봉·월봉 끝에 '지금' 칸을 하나 더 줘요) — 시각은 그 기간 첫 칸, 종가는 마지막 칸, 저가는 가장 낮은 값.
+ * 환율은 런던 날짜의 UTC 0시로 맞춰요(앱은 환율 봉을 UTC 날짜로 봐요 — 서머타임엔 야후 시각이 전날 23시라서).
+ */
 function shapeBars(symbol: string, interval: Interval, source: BarsRow['source'], currency: string | undefined, raw: { t: number; c: number; l: number | null }[], now: number): BarsRow | null {
   const since = (now - FIVE_YEARS_MS) / 1000;
-  const byT = new Map<number, { c: number; l: number }>();
-  for (const b of raw) {
-    if (!isNum(b.c) || !Number.isFinite(b.t) || b.t < since) continue;
+  const market = marketOfSymbol(symbol);
+  const tz = PERIOD_TZ[market];
+  const rows = raw.filter((b) => isNum(b.c) && Number.isFinite(b.t) && b.t >= since).sort((x, y) => x.t - y.t);
+  const byPeriod = new Map<string, { t: number; c: number; l: number }>();
+  for (const b of rows) {
+    const day = localDay(b.t * 1000, tz);
+    const key = periodKey(day, interval);
     const c = roundPrice(symbol, b.c);
     const l = isNum(b.l) ? Math.min(roundPrice(symbol, b.l), c) : c;
-    byT.set(Math.floor(b.t), { c, l });
+    const t = market === 'FX' ? Date.parse(`${interval === '1mo' ? `${key}-01` : key}T00:00:00Z`) / 1000 : Math.floor(b.t);
+    const prev = byPeriod.get(key);
+    byPeriod.set(key, prev ? { t: prev.t, c, l: Math.min(prev.l, l) } : { t, c, l });
   }
-  const ts = [...byT.keys()].sort((a, b) => a - b);
-  if (!ts.length) return null;
-  const high5y = Math.max(...ts.map((t) => byT.get(t)!.c));
-  const keep = ts.slice(-MAX_BARS);
-  const market = marketOfSymbol(symbol);
+  const bars = [...byPeriod.values()];
+  if (!bars.length) return null;
+  const high5y = Math.max(...bars.map((x) => x.c));
+  const keep = bars.slice(-MAX_BARS);
   const cur = currency === 'KRW' || currency === 'USD' || currency === 'JPY' ? currency : market === 'KR' || market === 'FX' ? 'KRW' : 'USD';
   return {
     key: `${symbol}|${interval}`,
@@ -111,12 +145,23 @@ function shapeBars(symbol: string, interval: Interval, source: BarsRow['source']
     currency: cur,
     tz: tzOfMarket(market),
     source,
-    t: keep,
-    c: keep.map((t) => byT.get(t)!.c),
-    l: keep.map((t) => byT.get(t)!.l),
+    t: keep.map((x) => x.t),
+    c: keep.map((x) => x.c),
+    l: keep.map((x) => x.l),
     high5y,
     updated_at: iso(now),
   };
+}
+
+/** 외환 시장이 열린 때(대략 일 21:00 UTC ~ 금 22:00 UTC) — 그 밖엔 환율 현재가를 CLOSED 로 */
+export function fxOpen(ms: number): boolean {
+  const d = new Date(ms);
+  const wd = d.getUTCDay();
+  const m = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (wd === 6) return false;
+  if (wd === 0) return m >= 21 * 60;
+  if (wd === 5) return m < 22 * 60;
+  return true;
 }
 
 // ---------------------------------------------------------------- 야후
@@ -133,11 +178,17 @@ interface SparkMeta {
   currentTradingPeriod?: { pre?: Period; regular?: Period; post?: Period };
 }
 
-/** 장 상태: 정규장 시간인데 오늘 체결이 없으면(휴장일) CLOSED. 한국은 시간외를 따로 보이지 않아 정규장 밖은 PRE(장 전)·CLOSED */
+/**
+ * 장 상태. 한국은 시간외를 따로 보이지 않아 정규장 밖은 PRE(장 전)·CLOSED.
+ * 정규장 시간인데 오늘 체결이 아직 없으면: 처음 40분은 장중(원천이 늦게 줘요 — 한국 약 20분), 그 뒤에도 없으면 휴장일이라 CLOSED.
+ */
 function stateOf(meta: SparkMeta, nowS: number, us: boolean): MarketState {
   const p = meta.currentTradingPeriod;
   const inside = (x?: Period) => !!x && x.start <= nowS && nowS < x.end;
-  if (inside(p?.regular)) return (meta.regularMarketTime ?? 0) >= p!.regular!.start ? 'REGULAR' : 'CLOSED';
+  if (inside(p?.regular)) {
+    if ((meta.regularMarketTime ?? 0) >= p!.regular!.start) return 'REGULAR';
+    return nowS - p!.regular!.start < 40 * 60 ? 'REGULAR' : 'CLOSED';
+  }
   if (inside(p?.pre)) return 'PRE';
   if (us && inside(p?.post)) return 'POST';
   return 'CLOSED';
@@ -156,9 +207,11 @@ export async function yahooQuotes(symbols: string[], now: number): Promise<{ row
     const price = meta?.regularMarketPrice;
     const prev = meta?.previousClose ?? meta?.chartPreviousClose;
     if (!meta || !isNum(price) || !isNum(prev)) continue;
-    const us = marketOfSymbol(r.symbol) === 'US';
-    const state = stateOf(meta, nowS, us);
+    const market = marketOfSymbol(r.symbol);
+    const us = market === 'US';
+    const state: MarketState = market === 'FX' ? (fxOpen(now) ? 'REGULAR' : 'CLOSED') : stateOf(meta, nowS, us);
     let ext: { session: 'pre' | 'post'; price: number } | undefined;
+    let extTime: number | null = null;
     if (us && !r.symbol.startsWith('^')) {
       const ts = resp?.timestamp ?? [];
       const closes = resp?.indicators?.quote?.[0]?.close ?? [];
@@ -170,9 +223,12 @@ export async function yahooQuotes(symbols: string[], now: number): Promise<{ row
         const last = closes[i] as number;
         if (state === 'PRE' && period.pre && t >= period.pre.start) ext = { session: 'pre', price: last };
         else if ((state === 'POST' || state === 'CLOSED') && period.post && t >= period.post.start) ext = { session: 'post', price: last };
+        if (ext) extTime = t * 1000;
       }
     }
-    rows.push(quoteFrom(r.symbol, price, prev, state, 'yahoo', now, ext));
+    const baseTime = isNum(meta.regularMarketTime) ? meta.regularMarketTime * 1000 : null;
+    const marketTime = extTime !== null && (baseTime === null || extTime > baseTime) ? extTime : baseTime;
+    rows.push(quoteFrom(r.symbol, price, prev, state, 'yahoo', now, marketTime, ext));
     seen.add(r.symbol);
   }
   return { rows, missing: symbols.filter((s) => !seen.has(s)) };
@@ -197,7 +253,7 @@ const pairOf = (symbol: string) => `${symbol.replace(/-USD$/, '')}USDT`;
 /** 코인 현재가: UTC 하루(tradingDay)의 시가 = 어제 종가 → 일봉과 같은 기준 */
 export async function binanceQuotes(symbols: string[], now: number): Promise<{ rows: QuoteRow[]; missing: string[] }> {
   const pairs = symbols.map(pairOf);
-  const json = (await getJson(`${BINANCE}/ticker/tradingDay?symbols=${encodeURIComponent(JSON.stringify(pairs))}&timeZone=0`, 'binance')) as { symbol: string; openPrice: string; lastPrice: string }[] | null;
+  const json = (await getJson(`${BINANCE}/ticker/tradingDay?symbols=${encodeURIComponent(JSON.stringify(pairs))}&timeZone=0`, 'binance')) as { symbol: string; openPrice: string; lastPrice: string; closeTime?: number }[] | null;
   const rows: QuoteRow[] = [];
   const seen = new Set<string>();
   for (const r of json ?? []) {
@@ -205,7 +261,7 @@ export async function binanceQuotes(symbols: string[], now: number): Promise<{ r
     const price = Number(r.lastPrice);
     const prev = Number(r.openPrice);
     if (!symbol || !isNum(price) || !isNum(prev)) continue;
-    rows.push(quoteFrom(symbol, price, prev, '24H', 'binance', now));
+    rows.push(quoteFrom(symbol, price, prev, '24H', 'binance', now, Number.isFinite(r.closeTime) ? (r.closeTime as number) : now));
     seen.add(symbol);
   }
   return { rows, missing: symbols.filter((s) => !seen.has(s)) };
@@ -224,53 +280,6 @@ export async function binanceBars(symbol: string, interval: Interval, now: numbe
   }
   const raw = rows.map((r) => ({ t: Number(r[0]) / 1000, c: Number(r[4]), l: Number(r[3]) }));
   return shapeBars(symbol, interval, 'binance', 'USD', raw, now);
-}
-
-// ---------------------------------------------------------------- Frankfurter(ECB 기준 환율, 키 없음)
-
-const FRANKFURTER = 'https://api.frankfurter.dev/v1';
-
-function pairOfFx(symbol: string): { base: string; quote: string } {
-  const m = /^([A-Z]{3})([A-Z]{3})=X$/.exec(symbol);
-  if (!m) throw new Error(`환율 심볼 꼴이 아님: ${symbol}`);
-  return { base: m[1], quote: m[2] };
-}
-
-function mondayKey(day: string): string {
-  const d = new Date(`${day}T00:00:00Z`);
-  const back = (d.getUTCDay() + 6) % 7;
-  return new Date(d.getTime() - back * 86_400_000).toISOString().slice(0, 10);
-}
-
-/** 환율 하나: 5년 일별 값 → 현재가(마지막 두 날) + 일·주·월봉(주·월은 마지막 값이 종가, 그 기간 최솟값이 저가) */
-export async function frankfurterAll(symbol: string, now: number): Promise<{ quote: QuoteRow; bars: BarsRow[] } | null> {
-  const { base, quote } = pairOfFx(symbol);
-  const start = new Date(now - FIVE_YEARS_MS).toISOString().slice(0, 10);
-  const json = (await getJson(`${FRANKFURTER}/${start}..?base=${base}&symbols=${quote}`, 'frankfurter', 20_000)) as { rates?: Record<string, Record<string, number>> } | null;
-  const days = Object.entries(json?.rates ?? {})
-    .map(([day, r]) => ({ day, v: r[quote] }))
-    .filter((d) => isNum(d.v))
-    .sort((a, b) => (a.day < b.day ? -1 : 1));
-  if (days.length < 2) return null;
-  const toT = (day: string) => Date.parse(`${day}T00:00:00Z`) / 1000;
-  const group = (keyOf: (day: string) => string) => {
-    const m = new Map<string, { c: number; l: number }>();
-    for (const d of days) {
-      const k = keyOf(d.day);
-      const g = m.get(k);
-      m.set(k, { c: d.v, l: g ? Math.min(g.l, d.v) : d.v });
-    }
-    return [...m.entries()].map(([k, g]) => ({ t: toT(k), c: g.c, l: g.l }));
-  };
-  const daily = days.map((d) => ({ t: toT(d.day), c: d.v, l: d.v }));
-  const bars = [
-    shapeBars(symbol, '1d', 'frankfurter', quote, daily, now),
-    shapeBars(symbol, '1wk', 'frankfurter', quote, group(mondayKey), now),
-    shapeBars(symbol, '1mo', 'frankfurter', quote, group((d) => `${d.slice(0, 7)}-01`), now),
-  ].filter((b): b is BarsRow => b !== null);
-  const last = days[days.length - 1];
-  const prev = days[days.length - 2];
-  return { quote: quoteFrom(symbol, last.v, prev.v, 'CLOSED', 'frankfurter', now), bars };
 }
 
 // ---------------------------------------------------------------- alternative.me(코인 공포탐욕, 하루 1회 값)

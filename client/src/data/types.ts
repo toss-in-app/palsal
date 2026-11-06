@@ -18,6 +18,14 @@ export interface QuoteRow {
   ext_change_pct: number | null;
   source: 'yahoo' | 'binance' | 'frankfurter';
   fetched_at: string;
+  /** 원천의 마지막 체결 시각(v1.13). 한국 주식·지수는 야후가 약 20분 늦게 줘요 — 화면 '기준' 시각. 예전 서버 행엔 없어요 */
+  market_time?: string | null;
+}
+
+/** 화면에 쓰는 '기준' 시각: 원천 체결 시각, 없으면 서버가 받은 시각 */
+export function quoteTimeOf(q: Pick<QuoteRow, 'fetched_at' | 'market_time'>): number {
+  const m = q.market_time ? Date.parse(q.market_time) : NaN;
+  return Number.isFinite(m) ? m : Date.parse(q.fetched_at);
 }
 
 export interface BarsRow {
@@ -58,7 +66,8 @@ export function isQuoteRow(v: unknown): v is QuoteRow {
     (v.ext_price === null || pos(v.ext_price)) &&
     (v.ext_change_pct === null || num(v.ext_change_pct)) &&
     SOURCES.includes(v.source as string) &&
-    time(v.fetched_at)
+    time(v.fetched_at) &&
+    (v.market_time === undefined || v.market_time === null || time(v.market_time))
   );
 }
 

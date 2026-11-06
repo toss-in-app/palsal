@@ -32,7 +32,8 @@ export const TRACK_RETRY_MS = 6000;
 export const STALE_MS = 20 * 60_000;
 
 /** 서버가 봉을 다시 넣는 시각(한국 시간) — 계약 server.md 작업 daily 가 끝날 즈음 */
-const BARS_READY_KST: Record<Market, [number, number]> = { KR: [16, 40], US: [7, 10], CRYPTO: [9, 20], FX: [1, 0] };
+// 환율 봉은 야후가 런던 0시에 끊고 서버가 00:20(런던)에 넣어요 → 한국 09:20(겨울)·08:20(여름) → 09:40
+const BARS_READY_KST: Record<Market, [number, number]> = { KR: [16, 40], US: [7, 10], CRYPTO: [9, 20], FX: [9, 40] };
 
 /** 봉 저장본의 '그날' — 가장 최근에 지난 갱신 시각의 한국 날짜 */
 export function barsDay(market: Market, now = Date.now()): string {

@@ -3,9 +3,9 @@
  *
  * 모드(?mode=)
  *   run    — pg_cron 이 5분마다: tick → daily → market(30분이 지났을 때만). 평소엔 이것만 불려요
- *   tick   — 장이 열린 시장의 추적 종목 현재가(야후 spark 20종목씩 · 바이낸스 묶음) → palsal_quotes
- *   daily  — 봉이 새로 나온 시장(한국 16:10 KST · 미국 16:30 ET · 코인 00:05 UTC · 환율 15:30 UTC 뒤)의 오래된 봉부터
- *            한 번에 DAILY_PER_RUN 개(종목×봉 단위) → palsal_bars. 환율은 Frankfurter 로 현재가까지
+ *   tick   — 장이 열린 시장의 추적 종목 현재가(야후 spark 20종목씩 — 주식·지수·환율 · 바이낸스 묶음) → palsal_quotes
+ *   daily  — 봉이 새로 나온 시장(한국 16:10 KST · 미국 16:30 ET · 코인 00:05 UTC · 환율 00:20 런던 뒤)의 오래된 봉부터
+ *            한 번에 DAILY_PER_RUN 개(종목×봉 단위) → palsal_bars
  *   market — 시총 상위 60 일봉 RSI · 30 아래 목록 · 공포탐욕 3 → palsal_market (손으로 부르면 바로 다시 계산)
  *   new    — palsal_track 이 부를 때(body {symbols}). 처음 보는 종목(최대 12) 현재가·봉 즉시
  * 추적 = universe 60 + 처음 연 날 예시 4 + 코스피 지수(공포탐욕) + 최근 DEMAND_DAYS 안에 휴대폰이 읽은 종목.
@@ -13,7 +13,7 @@
  */
 import { fearGreedLabel, fearGreedScore, headlineRsi, lastRsi, marketOfSymbol, withQuote, type ExchangeTz, type Interval, type Market, type MarketState } from '../_shared/calc.ts';
 import { inList, loadStates, patch, recordFailure, recordSuccess, resting, rpc, saveCursor, select, upsert, type FetchState } from './db.ts';
-import { binanceBars, binanceQuotes, cryptoFearGreed, frankfurterAll, SourceError, sleep, yahooBars, yahooQuotes, type BarsRow, type QuoteRow, type Source } from './sources.ts';
+import { binanceBars, binanceQuotes, cryptoFearGreed, fxOpen, SourceError, sleep, yahooBars, yahooQuotes, type BarsRow, type QuoteRow, type Source } from './sources.ts';
 
 const CRON_KEY = Deno.env.get('PALSAL_CRON_KEY') ?? '';
 const num = (name: string, def: number) => {
@@ -60,10 +60,10 @@ function zoned(ms: number, tz: string): { weekday: number; minutes: number; seco
 }
 const isWeekday = (wd: number) => wd >= 1 && wd <= 5;
 
-/** 현재가를 받는 시간: 한국 평일 08:55–16:00 KST · 미국 평일 03:55–20:15 ET(프리·정규·애프터 + 마감 표시 한 번) · 코인 늘 · 환율은 daily */
+/** 현재가를 받는 시간: 한국 평일 08:55–16:00 KST · 미국 평일 03:55–20:15 ET(프리·정규·애프터 + 마감 표시 한 번) · 코인 늘 · 환율은 외환 시장이 열린 동안(+닫힌 뒤 15분, CLOSED 표시) */
 function quoting(market: Market, now: number): boolean {
   if (market === 'CRYPTO') return true;
-  if (market === 'FX') return false;
+  if (market === 'FX') return fxOpen(now) || fxOpen(now - 15 * 60_000);
   const z = zoned(now, market === 'KR' ? 'Asia/Seoul' : 'America/New_York');
   if (!isWeekday(z.weekday)) return false;
   return market === 'KR' ? z.minutes >= 8 * 60 + 55 && z.minutes <= 16 * 60 : z.minutes >= 3 * 60 + 55 && z.minutes <= 20 * 60 + 15;
@@ -73,7 +73,8 @@ const READY: Record<Market, { tz: string; minutes: number; weekdays: boolean }> 
   KR: { tz: 'Asia/Seoul', minutes: 16 * 60 + 10, weekdays: true },
   US: { tz: 'America/New_York', minutes: 16 * 60 + 30, weekdays: true },
   CRYPTO: { tz: 'UTC', minutes: 5, weekdays: false },
-  FX: { tz: 'UTC', minutes: 15 * 60 + 30, weekdays: true },
+  // 환율 일봉은 야후가 런던 0시에 끊어요
+  FX: { tz: 'Europe/London', minutes: 20, weekdays: false },
 };
 
 /** 그 시장의 봉이 새로 나왔다고 보는 가장 최근 시각 — 이보다 먼저 받은 봉은 다시 받아요 */
@@ -143,7 +144,7 @@ async function markNotFound(symbols: string[], now: number): Promise<void> {
 async function tick(now: number, states: Map<string, FetchState>, log: Log): Promise<void> {
   const { all } = await tracked(now);
   const m = byMarket(all);
-  const stocks = [...(quoting('KR', now) ? m.KR : []), ...(quoting('US', now) ? m.US : [])];
+  const stocks = [...(quoting('KR', now) ? m.KR : []), ...(quoting('US', now) ? m.US : []), ...(quoting('FX', now) ? m.FX : [])];
   const rows: QuoteRow[] = [];
   if (stocks.length) {
     await guarded(states, 'yahoo', now, log, async () => {
@@ -181,23 +182,10 @@ async function daily(now: number, states: Map<string, FetchState>, log: Log, lim
     .slice(0, limit);
 
   const bars: BarsRow[] = [];
-  const quotes: QuoteRow[] = [];
   const empty = new Set<string>();
-  const fxDone = new Set<string>();
   for (const key of due) {
     const [symbol, interval] = key.split('|') as [string, Interval];
-    const market = marketOfSymbol(symbol);
-    if (market === 'FX') {
-      if (fxDone.has(symbol)) continue;
-      fxDone.add(symbol);
-      const r = await guarded(states, 'frankfurter', now, log, () => frankfurterAll(symbol, now));
-      if (r) {
-        bars.push(...r.bars);
-        quotes.push(r.quote);
-      }
-      continue;
-    }
-    const source: Source = market === 'CRYPTO' ? 'binance' : 'yahoo';
+    const source: Source = marketOfSymbol(symbol) === 'CRYPTO' ? 'binance' : 'yahoo';
     if (resting(states, source, now)) continue;
     const row = await guarded(states, source, now, log, () => (source === 'binance' ? binanceBars(symbol, interval, now) : yahooBars(symbol, interval, now)));
     if (row) bars.push(row);
@@ -205,7 +193,6 @@ async function daily(now: number, states: Map<string, FetchState>, log: Log, lim
     await sleep(source === 'yahoo' ? 250 : 100);
   }
   await upsert('palsal_bars', bars, 'key', 10);
-  await upsert('palsal_quotes', quotes, 'symbol');
   await markNotFound([...empty].filter((s) => !fixed.has(s)), now);
   log.daily = { due: due.length, bars: bars.length, notFound: [...empty] };
 }
@@ -321,7 +308,7 @@ async function fetchNew(symbols: string[], now: number, states: Map<string, Fetc
   const quotes: QuoteRow[] = [];
   const bars: BarsRow[] = [];
   const missingQuote = new Set<string>();
-  const stocks = [...m.KR, ...m.US];
+  const stocks = [...m.KR, ...m.US, ...m.FX];
   if (stocks.length) {
     const r = await guarded(states, 'yahoo', now, log, () => yahooQuotes(stocks, now));
     if (r) {
@@ -336,13 +323,6 @@ async function fetchNew(symbols: string[], now: number, states: Map<string, Fetc
       r.missing.forEach((s) => missingQuote.add(s));
     }
   }
-  for (const s of m.FX) {
-    const r = await guarded(states, 'frankfurter', now, log, () => frankfurterAll(s, now));
-    if (r) {
-      quotes.push(r.quote);
-      bars.push(...r.bars);
-    } else missingQuote.add(s);
-  }
   for (const s of [...stocks, ...m.CRYPTO]) {
     if (missingQuote.has(s)) continue;
     for (const interval of INTERVALS) {
@@ -354,7 +334,7 @@ async function fetchNew(symbols: string[], now: number, states: Map<string, Fetc
   }
   await upsert('palsal_quotes', quotes, 'symbol');
   await upsert('palsal_bars', bars, 'key', 10);
-  const notFound = [...missingQuote].filter((s) => !resting(states, marketOfSymbol(s) === 'CRYPTO' ? 'binance' : marketOfSymbol(s) === 'FX' ? 'frankfurter' : 'yahoo', now));
+  const notFound = [...missingQuote].filter((s) => !resting(states, marketOfSymbol(s) === 'CRYPTO' ? 'binance' : 'yahoo', now));
   await markNotFound(notFound, now);
   log.new = { asked: list.length, quotes: quotes.length, bars: bars.length, notFound };
 }

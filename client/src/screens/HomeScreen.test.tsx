@@ -63,7 +63,9 @@ describe('HomeScreen', () => {
     const up = entry(bars(1));
     const items = [item('035720.KS'), item('005930.KS')];
     const h = renderHome(items, { entries: { '035720.KS|1d': down, '005930.KS|1d': up }, latestAt: Date.parse('2026-11-05T06:30:00Z') });
-    expect(screen.getByText('11월 5일 목요일 · 15:30 기준')).toBeInTheDocument();
+    // 머리 시각은 서버에서 받은 때(업데이트). 국내 종목이 있으면 '약 20분 늦은 시세' 한 줄(v1.13)
+    expect(screen.getByText('11월 5일 목요일 · 15:30 업데이트')).toBeInTheDocument();
+    expect(screen.getByText('국내 주식·지수는 약 20분 늦은 시세예요')).toBeInTheDocument();
     expect(screen.getByText('카카오')).toBeInTheDocument();
     expect(screen.getByText('035720 · 코스피')).toBeInTheDocument();
     // 'RSI 14' 라벨은 카드마다가 아니라 목록 머리에 한 번, 일봉 딱지는 주봉·월봉일 때만

@@ -8,6 +8,7 @@ import type { SymbolEntry } from '../content';
 import { BAR_UNIT, codeLine, formatBarDate, formatChange, formatKstTime, formatPct, formatPrice, formatRsi, INTERVAL_LABEL, marketOf, tzOf, unitOf } from '../lib/format';
 import { changeColor, DOWN, HIGH_INK, LOW_INK, MA_120, UP, ZONE_LABEL, zoneBg, zoneInk } from '../lib/palette';
 import type { Analysis } from '../lib/series';
+import { quoteTimeOf } from '../data/types';
 import { isStale, type CardEntry } from '../state/cards';
 import type { WatchItem } from '../state/watch';
 import { Icon, type IconName } from './Icon';
@@ -80,7 +81,7 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
   const zone = a?.zone ?? null;
   const failed = !a && entry?.status === 'error';
   const stale = isStale(quote, now);
-  const at = quote ? Date.parse(quote.fetched_at) : (last?.fetchedAt ?? null);
+  const at = quote ? quoteTimeOf(quote) : (last?.fetchedAt ?? null);
 
   const open = () => onOpen(item);
   const press = useLongPress(() => onLongPress?.(item), open);

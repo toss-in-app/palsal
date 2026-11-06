@@ -4,7 +4,7 @@
 > → 서버가 **정해진 간격으로** 받아 표에 넣고, 휴대폰은 **읽기만**. 출처 호출 수가 사용자 수와 무관해진다.
 
 ```
-야후(비공식) · 바이낸스 · Frankfurter · alternative.me
+야후(비공식: 주식·지수·환율) · 바이낸스 · alternative.me   (v1.13 — 환율도 야후, Frankfurter 안 씀)
         ▲  5분마다 묶어서(정직한 이름 'palsal/1.0')
 Edge Function palsal-fetch  ◄── pg_cron (pg_net 으로 호출)
         ▼ upsert
@@ -113,3 +113,14 @@ create table palsal_demand (
 - 종목 목록·시총 목록을 바꾸면 `server-seed.mjs` 를 다시(정적 배포와 같이). 함수 고치면 deploy 만.
 - 첫 배포 확인: daily 5번으로 봉 189개(63종목×3), tick 33+1, market 60종목 RSI, palsal_track → pg_net → mode=new 4초 안에 현재가 3 · 봉 9, 공개 키로 palsal_symbols·palsal_demand 0행 · palsal_market_inputs 401, cron 14:20 UTC 성공.
 - 보기: 대시보드 Edge Functions 로그(모드별 한 줄 JSON) · `select * from net._http_response order by created desc limit 5` · `select * from cron.job_run_details order by start_time desc limit 5` · `select * from palsal_fetch_state`(출처별 쉬기).
+
+## 얼마나 새것인가 (v1.13, 2026-11-06 확인)
+| 종목 | 원천 | 서버 간격 | 화면(최악) |
+|------|------|-----------|-----------|
+| 미국 주식·ETF | 야후 거의 실시간(1분봉 30초 전까지) | 5분 | 열 때 5분 · 켜 둔 채 10분 |
+| 코인 | 바이낸스 실시간 | 5분 | 같음 |
+| 환율 | 야후(외환 시장 시간 동안) | 5분 | 같음 |
+| 한국 주식·지수 | **야후가 약 20분 늦게 줌** | 5분 | 열 때 약 25분 · 켜 둔 채 약 30분 |
+| 시장 탭 | 서버 계산 | 30분 | 30분(+한국 20분) |
+- 화면 '기준' 시각은 `market_time`(원천 체결 시각) — 한국 종목은 fetched_at 보다 20분쯤 이르게 보여 정직해요. 내 종목 머리 시각은 서버에서 받은 때('업데이트').
+- 정규장 시간인데 아직 오늘 체결이 없으면 처음 40분은 REGULAR(원천 지연), 그 뒤에도 없으면 휴장일 CLOSED.

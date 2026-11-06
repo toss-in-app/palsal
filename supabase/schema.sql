@@ -26,6 +26,9 @@ create table if not exists public.palsal_quotes (
   fetched_at timestamptz not null
 );
 
+-- v1.13: 원천의 마지막 체결 시각(한국 주식·지수는 야후가 약 20분 늦게 줘요 — 화면 '기준' 시각은 이것)
+alter table public.palsal_quotes add column if not exists market_time timestamptz;
+
 create table if not exists public.palsal_bars (
   key text primary key,
   symbol text not null references public.palsal_symbols (symbol),

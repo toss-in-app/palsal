@@ -143,7 +143,7 @@ function makeBars(symbol: string, interval: Interval, now: number): BarsRow {
     interval,
     currency: market === 'US' || market === 'CRYPTO' ? 'USD' : 'KRW',
     tz,
-    source: market === 'CRYPTO' ? 'binance' : market === 'FX' ? 'frankfurter' : 'yahoo',
+    source: market === 'CRYPTO' ? 'binance' : 'yahoo',
     t: days.map((d) => Date.parse(`${d}T00:00:00Z`) / 1000 + OPEN_UTC_HOUR[tz] * 3600),
     c,
     l,
@@ -186,6 +186,8 @@ function makeQuote(symbol: string, now: number): QuoteRow {
     ext_change_pct: extPrice ? Math.round((extPrice / price - 1) * 10000) / 100 : null,
     source: bars.source,
     fetched_at: new Date(Math.floor(now / 300_000) * 300_000).toISOString(),
+    // 원천 체결 시각: 한국 주식·지수는 야후가 약 20분 늦게 줘요(서버와 같게 흉내)
+    market_time: new Date(Math.floor(now / 300_000) * 300_000 - (marketOf(symbol) === 'KR' && state === 'REGULAR' ? 20 * 60_000 : 0)).toISOString(),
   };
 }
 

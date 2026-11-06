@@ -75,7 +75,7 @@ function HeaderButton({ icon, label, onClick }: { icon: IconName; label: string;
   );
 }
 
-function Legend() {
+function Legend({ krDelay }: { krDelay: boolean }) {
   const row = { display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 12, color: colors.grey700, padding: '8px 24px 0' } as const;
   return (
     <div aria-label="차트 표시 읽는 법">
@@ -101,6 +101,8 @@ function Legend() {
           <span style={{ color: MA_50W }}>—</span> 50주선
         </span>
       </div>
+      {/* 한국 주식·지수는 시세 제공처(야후)가 약 20분 늦게 줘요 — 담은 종목에 국내가 있을 때 한 번만 */}
+      {krDelay ? <div style={{ ...row, paddingTop: 3 }}>국내 주식·지수는 약 20분 늦은 시세예요</div> : null}
     </div>
   );
 }
@@ -285,7 +287,7 @@ export function HomeScreen(props: HomeScreenProps) {
     <main style={{ minHeight: '100vh', background: PAGE_BG, paddingBottom: 120 }}>
       <Top
         style={{ background: PAGE_BG }}
-        subtitleTop={<Top.SubtitleParagraph size={13}>{`${formatDateLabel(today)}${cards.latestAt ? ` · ${formatKstTime(cards.latestAt)} 기준` : ''}`}</Top.SubtitleParagraph>}
+        subtitleTop={<Top.SubtitleParagraph size={13}>{`${formatDateLabel(today)}${cards.latestAt ? ` · ${formatKstTime(cards.latestAt)} 업데이트` : ''}`}</Top.SubtitleParagraph>}
         title={<Top.TitleParagraph size={28}>{`내 종목 ${items.length}`}</Top.TitleParagraph>}
         right={
           <div style={{ display: 'flex', gap: 6, marginRight: 20 }}>
@@ -353,7 +355,7 @@ export function HomeScreen(props: HomeScreenProps) {
               RSI 14 기준
             </Text>
           </div>
-          <Legend />
+          <Legend krDelay={items.some((it) => marketOf(it.symbol, symbolIndex.get(it.symbol)) === 'KR')} />
 
           <section aria-label="내 종목 차트" style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '16px 20px 0' }}>
             {shown.map((it, i) => (

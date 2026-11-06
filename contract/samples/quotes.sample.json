@@ -1,38 +1,41 @@
 [
- {
-  "symbol": "035720.KS",
-  "price": 41250.0,
-  "prev_close": 41028.0,
-  "change_pct": 0.54,
-  "market_state": "CLOSED",
-  "ext_session": null,
-  "ext_price": null,
-  "ext_change_pct": null,
-  "source": "yahoo",
-  "fetched_at": "2026-11-05T06:40:00Z"
- },
- {
-  "symbol": "NVDA",
-  "price": 201.37,
-  "prev_close": 195.65,
-  "change_pct": 2.92,
-  "market_state": "POST",
-  "ext_session": "post",
-  "ext_price": 203.1,
-  "ext_change_pct": 0.86,
-  "source": "yahoo",
-  "fetched_at": "2026-11-05T06:40:00Z"
- },
- {
-  "symbol": "BTC-USD",
-  "price": 104820.0,
-  "prev_close": 104496.0,
-  "change_pct": 0.31,
-  "market_state": "24H",
-  "ext_session": null,
-  "ext_price": null,
-  "ext_change_pct": null,
-  "source": "binance",
-  "fetched_at": "2026-11-05T06:40:00Z"
- }
+  {
+    "symbol": "035720.KS",
+    "price": 41250.0,
+    "prev_close": 41028.0,
+    "change_pct": 0.54,
+    "market_state": "CLOSED",
+    "ext_session": null,
+    "ext_price": null,
+    "ext_change_pct": null,
+    "source": "yahoo",
+    "fetched_at": "2026-11-05T06:40:00Z",
+    "market_time": "2026-11-05T06:40:00Z"
+  },
+  {
+    "symbol": "NVDA",
+    "price": 201.37,
+    "prev_close": 195.65,
+    "change_pct": 2.92,
+    "market_state": "POST",
+    "ext_session": "post",
+    "ext_price": 203.1,
+    "ext_change_pct": 0.86,
+    "source": "yahoo",
+    "fetched_at": "2026-11-05T06:40:00Z",
+    "market_time": "2026-11-05T06:40:00Z"
+  },
+  {
+    "symbol": "BTC-USD",
+    "price": 104820.0,
+    "prev_close": 104496.0,
+    "change_pct": 0.31,
+    "market_state": "24H",
+    "ext_session": null,
+    "ext_price": null,
+    "ext_change_pct": null,
+    "source": "binance",
+    "fetched_at": "2026-11-05T06:40:00Z",
+    "market_time": "2026-11-05T06:40:00Z"
+  }
 ]
