@@ -10,6 +10,7 @@ import { BAR_UNIT, formatBarPeriod, formatChange, formatPct, formatPrice, format
 import { zoneOf } from '../lib/indicators';
 import { changeColor, MA_120, MA_200, MA_50W, ZONE_LABEL, zoneInk } from '../lib/palette';
 import { fullChart, type Bars, type ExchangeTz, type FullChartModel, type Interval } from '../lib/series';
+import { haptic } from '../lib/haptic';
 import { useChartGestures } from '../lib/useChartGestures';
 
 const INTERVALS: Interval[] = ['1d', '1wk', '1mo'];
@@ -42,6 +43,8 @@ export function ChartViewer({ name, interval, onInterval, bars, crypto, tz, unit
 
   return (
     <main
+      // 차트를 누르면 그 자리에서 커지듯 열려요
+      className="screen-zoom"
       style={{
         height: '100vh',
         boxSizing: 'border-box',
@@ -110,6 +113,7 @@ function ChartBody({ model, name, tz, interval, unit, fx }: ChartBodyProps) {
     setViewState(v);
   }, []);
   const [point, setPoint] = useState<number | null>(null);
+  const holding = useRef(false);
   const hintId = useId();
 
   // 보는 동안 새 봉이 붙으면: 최신을 보던 중이면 최신에 붙어 있어요
@@ -163,8 +167,12 @@ function ChartBody({ model, name, tz, interval, unit, fx }: ChartBodyProps) {
     plot: { left: ZOOM_PL, width: plotWidth },
     getView: () => viewRef.current,
     setView,
-    // 짧게 누르면 그 봉 값 — 같은 봉을 한 번 더 누르면 닫혀요
-    onPoint: (i, how) => setPoint((cur) => (how === 'tap' && cur === i ? null : i)),
+    // 짧게 누르면 그 봉 값 — 같은 봉을 한 번 더 누르면 닫혀요. 길게 누르기 시작할 때 짧게 진동
+    onPoint: (i, how) => {
+      if (how === 'hold' && !holding.current) haptic('tickWeak');
+      holding.current = how === 'hold';
+      setPoint((cur) => (how === 'tap' && cur === i ? null : i));
+    },
   });
 
   const latest = atLatest(view, n);
@@ -262,6 +270,7 @@ function ChartBody({ model, name, tz, interval, unit, fx }: ChartBodyProps) {
               setPoint(null);
               setView(clampView({ ...viewRef.current, end: n - 1 }, n));
             }}
+            className="tap"
             style={{
               position: 'absolute',
               right: gutter + 6,
@@ -305,10 +314,10 @@ function ChartBody({ model, name, tz, interval, unit, fx }: ChartBodyProps) {
           ) : null}
         </div>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, flex: 'none' }}>
-          <button type="button" aria-label="축소" disabled={view.count >= n} onClick={() => zoomBy(1 / ZOOM_STEP)} style={roundButton(view.count >= n)}>
+          <button type="button" aria-label="축소" disabled={view.count >= n} onClick={() => zoomBy(1 / ZOOM_STEP)} className="tap tap-soft" style={roundButton(view.count >= n)}>
             <Icon name="minus" size={18} />
           </button>
-          <button type="button" aria-label="확대" disabled={view.count <= minCount} onClick={() => zoomBy(ZOOM_STEP)} style={roundButton(view.count <= minCount)}>
+          <button type="button" aria-label="확대" disabled={view.count <= minCount} onClick={() => zoomBy(ZOOM_STEP)} className="tap tap-soft" style={roundButton(view.count <= minCount)}>
             <Icon name="plus" size={18} />
           </button>
         </span>

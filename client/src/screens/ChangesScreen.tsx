@@ -48,7 +48,8 @@ export function ChangesScreen({ today, items, cards, onOpen, notificationCard }:
                 <button
                   type="button"
                   onClick={() => onOpen(c)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
+                  className="tap-row"
+                  style={{ width: 'calc(100% + 16px)', margin: '0 -8px', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 8px', borderRadius: 12, border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
                 >
                   <span style={{ marginTop: 1, display: 'inline-flex' }}>
                     <ChangeIcon view={v} />

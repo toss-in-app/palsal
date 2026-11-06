@@ -66,6 +66,7 @@ export function TabBar({ active, onSelect }: TabBarProps) {
             type="button"
             aria-current={on ? 'page' : undefined}
             onClick={() => onSelect(item.name)}
+            className="tap tap-soft"
             style={{
               height: 56,
               border: 0,

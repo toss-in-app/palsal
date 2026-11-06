@@ -75,7 +75,7 @@ function FearGreedStrip({ fg, onInfo }: { fg: MarketPayload['fearGreed']; onInfo
               <Text typography="t6" fontWeight="bold" color={colors.grey900}>
                 {title}
               </Text>
-              <button type="button" aria-label="공포탐욕지수 계산 방법" onClick={onInfo} style={{ border: 0, background: 'none', padding: 4, cursor: 'pointer', display: 'inline-flex', color: colors.grey600 }}>
+              <button type="button" aria-label="공포탐욕지수 계산 방법" onClick={onInfo} className="tap tap-soft" style={{ border: 0, background: 'none', padding: 4, cursor: 'pointer', display: 'inline-flex', color: colors.grey600 }}>
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="8.5" />
                   <path d="M12 11v5" />
@@ -198,14 +198,16 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
               ))}
             </div>
             {shownLow.length ? (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {shownLow.map((r) => {
+              // 버튼을 바꾸면 목록을 새로 그려 줄마다 차례로 올라와요
+              <ul key={lowTab} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {shownLow.map((r, i) => {
                   const s = r.symbol;
                   const side = sideOf.get(s);
                   const done = isWatched(s);
                   return (
-                    <li key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0 20px', minHeight: 60 }}>
-                      <button type="button" onClick={() => onOpen(s)} style={{ flex: 1, minWidth: 0, border: 0, background: 'none', padding: '8px 0', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}>
+                    <li key={s} className="rise-in" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0 20px', minHeight: 60, animationDelay: `${Math.min(i, 8) * 35}ms` }}>
+                      {/* 줄 어디를 눌러도 자세히(row-stretch), 담기 단추만 따로 */}
+                      <button type="button" onClick={() => onOpen(s)} className="row-stretch" style={{ flex: 1, minWidth: 0, border: 0, background: 'none', padding: '8px 0', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}>
                         <Text display="block" typography="t6" fontWeight="semibold" color={colors.grey900} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {nameOf(s)}
                         </Text>
@@ -214,7 +216,7 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                           {`${lowTab === 'all' && side ? `${SIDE_LABEL[side]} · ` : ''}RSI ${formatRsi(r.rsi as number)}`}
                         </Text>
                       </button>
-                      <Button size="small" variant="weak" disabled={done} onClick={() => setAdding(s)}>
+                      <Button size="small" variant="weak" disabled={done} onClick={() => setAdding(s)} style={{ position: 'relative', zIndex: 1 }}>
                         {done ? '담음' : '담기'}
                       </Button>
                     </li>
@@ -253,6 +255,7 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
                   <button
                     type="button"
                     onClick={() => onOpen(r.symbol)}
+                    className="tap-row"
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
                   >
                     <Text typography="t7" fontWeight="medium" color={colors.grey600} style={{ width: 20, flex: 'none', fontVariantNumeric: 'tabular-nums' }}>

@@ -9,7 +9,7 @@ import type { ChangeItem } from '../state/changes';
 import type { Filter } from '../state/settings';
 import type { WatchItem } from '../state/watch';
 import { summaryText } from '../lib/changeView';
-import { HomeScreen } from './HomeScreen';
+import { HomeScreen, MORE_DELAY_MS, PAGE } from './HomeScreen';
 
 const item = (symbol: string): WatchItem => ({ id: `${symbol}|1d`, symbol, interval: '1d', addedAt: 0 });
 
@@ -199,5 +199,70 @@ describe('HomeScreen', () => {
     renderHome([item('NVDA')], { entries: { 'NVDA|1d': entry(bars(1)) }, latestAt: null });
     const kids = Array.from(screen.getByRole('region', { name: '내 종목 차트' }).children);
     expect(kids[1].getAttribute('data-testid')).toBe('ad-banner');
+  });
+});
+
+// 모듈 상태(보던 카드 수)를 바꾸므로 이 파일 맨 끝에 둬요
+describe('끝까지 내리면 다음 카드', () => {
+  it('끝 자리가 보이면 반짝이는 카드 자리를 잠깐 보여 준 뒤 다음 묶음을 붙여요', () => {
+    const seen: IntersectionObserverCallback[] = [];
+    class FakeIO {
+      constructor(cb: IntersectionObserverCallback) {
+        seen.push(cb);
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeIO);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const e = entry(bars(-1));
+    const symbols = ['035720.KS', '005930.KS', '000660.KS', '005380.KS', '247540.KQ', 'NVDA'];
+    renderHome(symbols.map(item), { entries: Object.fromEntries(symbols.map((s) => [`${s}|1d`, e])), latestAt: null });
+    expect(screen.getAllByRole('link')).toHaveLength(PAGE);
+    expect(screen.getByRole('status', { name: '다음 종목을 불러오는 중' })).toBeInTheDocument();
+    act(() => seen[seen.length - 1]([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+    // 바로 붙이지 않고 반짝이는 자리가 먼저
+    expect(screen.getAllByRole('link')).toHaveLength(PAGE);
+    act(() => {
+      vi.advanceTimersByTime(MORE_DELAY_MS);
+    });
+    expect(screen.getAllByRole('link')).toHaveLength(symbols.length);
+    expect(screen.queryByRole('status', { name: '다음 종목을 불러오는 중' })).not.toBeInTheDocument();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('편집 모드를 다녀와도 끝 자리를 다시 지켜봐요(예전엔 떨어져 나간 옛 자리를 보고 있어 더 안 불렀어요)', () => {
+    const observed: Element[] = [];
+    class FakeIO {
+      observe(el: Element) {
+        observed.push(el);
+      }
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeIO);
+    vi.useFakeTimers();
+    try {
+      const e = entry(bars(-1));
+      const symbols = ['035720.KS', '005930.KS', '000660.KS', '005380.KS', '247540.KQ', 'NVDA', 'AAPL', 'TSLA', 'QQQ', 'SPY'];
+      renderHome(symbols.map(item), { entries: Object.fromEntries(symbols.map((s) => [`${s}|1d`, e])), latestAt: null });
+      fireEvent.pointerDown(screen.getAllByRole('link')[0], { button: 0, clientX: 10, clientY: 10 });
+      act(() => vi.advanceTimersByTime(600));
+      fireEvent.click(screen.getByRole('button', { name: '완료' }));
+      const loader = screen.getByRole('status', { name: '다음 종목을 불러오는 중' });
+      expect(observed[observed.length - 1]).toBe(loader);
+      expect(loader.isConnected).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
   });
 });

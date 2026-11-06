@@ -7,6 +7,7 @@ export function Pill({ on, children, onClick }: { on: boolean; children: string;
       type="button"
       aria-pressed={on}
       onClick={onClick}
+      className="tap"
       style={{
         height: 32,
         padding: '0 12px',

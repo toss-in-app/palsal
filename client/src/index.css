@@ -20,3 +20,80 @@ body {
     background-color: #f5f5f5 !important;
   }
 }
+
+/*
+ * 움직임(액션) — 2026-11-06 사용자 "액션이 하나도 없는데 맞아?"
+ * 누르면 반응 · 화면이 바뀌면 들어오는 방향 · 새 카드는 아래에서 올라오고 · 불러오는 자리는 반짝여요.
+ * iOS 는 touchstart 리스너가 있어야 :active 가 붙어요(main.tsx). 동작 줄이기 설정이면 다 꺼요.
+ */
+.tap {
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+.tap:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.tap-soft:active:not(:disabled) {
+  transform: scale(0.9);
+}
+.tap-row {
+  transition: background-color 120ms ease;
+}
+.tap-row:active {
+  background-color: rgba(2, 32, 71, 0.05);
+}
+/* 줄 전체가 눌리는 단추(오른쪽에 다른 단추가 있는 줄): 단추의 ::before 가 줄을 덮어요. 줄에 position: relative */
+.row-stretch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transition: background-color 120ms ease;
+}
+.row-stretch:active::before {
+  background-color: rgba(2, 32, 71, 0.05);
+}
+
+@keyframes palsal-push {
+  from { opacity: 0; transform: translate3d(28px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes palsal-pop {
+  from { opacity: 0; transform: translate3d(-20px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes palsal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes palsal-rise {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes palsal-zoom {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes palsal-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+@keyframes palsal-spin {
+  to { transform: rotate(360deg); }
+}
+.screen-push { animation: palsal-push 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.screen-pop { animation: palsal-pop 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.screen-fade { animation: palsal-fade 200ms ease-out both; }
+.screen-zoom { animation: palsal-zoom 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.rise-in { animation: palsal-rise 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fade-in { animation: palsal-fade 260ms ease-out both; }
+.skeleton {
+  background: linear-gradient(90deg, #f2f4f6 25%, #fafbfc 50%, #f2f4f6 75%);
+  background-size: 200% 100%;
+  animation: palsal-shimmer 1.3s ease-in-out infinite;
+}
+.spin { animation: palsal-spin 0.9s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tap:active:not(:disabled),
+  .tap-soft:active:not(:disabled) { transform: none; }
+  .screen-push, .screen-pop, .screen-fade, .screen-zoom, .rise-in, .fade-in, .skeleton, .spin { animation: none; }
+}

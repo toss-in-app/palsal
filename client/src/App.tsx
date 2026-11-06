@@ -9,7 +9,8 @@ import { logEvent } from './lib/analytics';
 import { openUrl } from './lib/bridge';
 import { AGREEMENT_TOAST, notificationAvailable, requestNotificationAgreement } from './notification/agreement';
 import { kstDateKey } from './lib/date';
-import { TABS, goBack, navigate, routeToHash, useRoute, type TabName } from './lib/router';
+import { haptic } from './lib/haptic';
+import { TABS, goBack, lastNavigation, navigate, routeToHash, useRoute, type TabName } from './lib/router';
 import { rankIndex } from './lib/search';
 import { INTERVAL_LABEL, marketOf } from './lib/format';
 import { AddScreen } from './screens/AddScreen';
@@ -67,6 +68,12 @@ export default function App() {
   // 같은 화면에서 시트를 닫을 때(popstate)는 주소가 그대로라 움직이지 않아요.
   const routeKey = routeToHash(route);
   const isHome = route.name === 'home';
+  // 화면이 들어오는 방향: 탭끼리는 살짝 나타나기, 앞으로 가면 오른쪽에서, 뒤로 오면 왼쪽에서. 앱을 처음 열 땐 나타나기
+  const motion = useRef({ key: routeKey, cls: 'screen-fade', tab: (TABS as readonly string[]).includes(route.name) });
+  if (motion.current.key !== routeKey) {
+    const tabNow = (TABS as readonly string[]).includes(route.name);
+    motion.current = { key: routeKey, cls: motion.current.tab && tabNow ? 'screen-fade' : lastNavigation() === 'pop' ? 'screen-pop' : 'screen-push', tab: tabNow };
+  }
   useLayoutEffect(() => {
     if (!isHome) window.scrollTo(0, 0);
   }, [routeKey, isHome]);
@@ -137,6 +144,7 @@ export default function App() {
       if (addWatch([{ symbol, interval }])) {
         rememberSaved(watchId(symbol, interval));
         logEvent('watch_add', { n: 1, count: watchStore.get().items.length, interval });
+        haptic('success');
         say('내 종목에 담았어요');
       } else say('더 담으려면 몇 개를 빼 주세요');
     },
@@ -202,6 +210,7 @@ export default function App() {
         }}
         onToast={say}
         onDone={(n) => {
+          if (n) haptic('success');
           say(n ? `${n}개 담았어요` : '이미 담은 종목이에요');
           if (n) goBack();
         }}
@@ -274,8 +283,18 @@ export default function App() {
 
   return (
     <>
-      {screen}
-      {tab && !(route.name === 'home' && homeEditing) ? <TabBar active={tab} onSelect={(t) => navigate(t === 'home' ? { name: 'home' } : { name: t })} /> : null}
+      <div key={routeKey} className={motion.current.cls}>
+        {screen}
+      </div>
+      {tab && !(route.name === 'home' && homeEditing) ? (
+        <TabBar
+          active={tab}
+          onSelect={(t) => {
+            if (t !== tab) haptic('tickWeak');
+            navigate(t === 'home' ? { name: 'home' } : { name: t });
+          }}
+        />
+      ) : null}
     </>
   );
 }

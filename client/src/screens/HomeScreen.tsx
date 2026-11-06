@@ -1,6 +1,6 @@
 import { colors } from '@toss/tds-colors';
 import { Button, SearchField, Text, Top } from '@toss/tds-mobile';
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { AD_GROUPS } from '../ads/config';
 import { AdBanner } from '../components/AdBanner';
@@ -16,6 +16,7 @@ import { formatDateLabel } from '../lib/date';
 import { formatKstTime, marketOf } from '../lib/format';
 import { HIGH_LINE, LOW_LINE } from '../lib/indicators';
 import { HIGH_INK, LOW_INK, MA_120, MA_200, MA_50W, PAGE_BG } from '../lib/palette';
+import { haptic } from '../lib/haptic';
 import { launchSource, overlayActive, pushOverlay } from '../lib/router';
 import { scoreOf } from '../lib/search';
 import { cardsStore, loadCards, refreshQuotes, retryCard, rsiOfEntry, type CardsState } from '../state/cards';
@@ -60,17 +61,60 @@ let savedScroll = 0;
 let savedLimit = PAGE;
 /** 열 때 요약 토스트는 세션에 한 번 */
 let summaryShown = false;
+/** 이번 세션에 한 번 보인 카드 — 처음 보이는 카드만 아래에서 올라와요(자세히에서 돌아올 땐 그대로) */
+const seenCards = new Set<string>();
+/** 끝까지 내리면 '다음 카드를 만드는 중'이 보이게 이만큼 반짝인 뒤 붙여요 */
+export const MORE_DELAY_MS = 450;
+
+/** 새로 보이는 카드: 아래에서 살짝 올라오며 나타나요(묶음 안에서 차례로) */
+function Appear({ id, delay, children }: { id: string; delay: number; children: ReactNode }) {
+  const [appear] = useState(() => !seenCards.has(id));
+  useEffect(() => {
+    seenCards.add(id);
+  }, [id]);
+  return (
+    <div className={appear ? 'rise-in' : undefined} style={appear ? { animationDelay: `${delay}ms` } : undefined}>
+      {children}
+    </div>
+  );
+}
+
+/** 다음 카드를 불러오는 자리 — 카드 모양 그대로 반짝여요 */
+function MoreLoader({ refEl }: { refEl: (el: HTMLDivElement | null) => void }) {
+  const bar = (w: number | string, h: number, r = 6, mt = 0) => <span aria-hidden="true" className="skeleton" style={{ display: 'block', width: w, height: h, borderRadius: r, marginTop: mt }} />;
+  return (
+    <div ref={refEl} role="status" aria-label="다음 종목을 불러오는 중" style={{ background: colors.background, borderRadius: 16, padding: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ flex: 1 }}>
+          {bar(104, 20)}
+          {bar(76, 14, 6, 6)}
+        </span>
+        {bar(72, 30, 8)}
+      </div>
+      {bar(128, 24, 6, 14)}
+      {bar('100%', 120, 12, 14)}
+      <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 12, textAlign: 'center' }}>
+        다음 종목을 불러오고 있어요
+      </Text>
+    </div>
+  );
+}
 
 
-function HeaderButton({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
+function HeaderButton({ icon, label, onClick, spinning = false }: { icon: IconName; label: string; onClick: () => void; spinning?: boolean }) {
   return (
     <button
       type="button"
       aria-label={label}
+      aria-busy={spinning || undefined}
       onClick={onClick}
+      className="tap tap-soft"
       style={{ width: 40, height: 40, borderRadius: 20, border: 0, background: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}
     >
-      <Icon name={icon} size={20} color={colors.grey700} strokeWidth={icon === 'plus' ? 2.4 : 2} />
+      {/* 새로고침 중엔 화살표가 돌아요 */}
+      <span className={spinning ? 'spin' : undefined} style={{ display: 'inline-flex' }}>
+        <Icon name={icon} size={20} color={colors.grey700} strokeWidth={icon === 'plus' ? 2.4 : 2} />
+      </span>
     </button>
   );
 }
@@ -117,7 +161,8 @@ export function HomeScreen(props: HomeScreenProps) {
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(savedLimit);
-  const sentinel = useRef<HTMLDivElement>(null);
+  // 끝 자리 요소를 상태로 들고 있어요 — 편집 모드를 다녀오면 새 요소로 바뀌는데, ref 로만 보면 떨어져 나간 옛 요소를 계속 지켜봐서 더 불러오지 못했어요
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const lastRefresh = useRef(Date.now());
 
   const rsiOf = useCallback((it: WatchItem) => rsiOfEntry(cards.entries[it.id], it.id), [cards]);
@@ -149,6 +194,7 @@ export function HomeScreen(props: HomeScreenProps) {
   // 그 자리 편집 모드: 길게 누르면 들어가고, '완료'·뒤로가기로 나와요(히스토리 한 칸)
   const startEdit = useCallback(() => {
     if (editing) return;
+    haptic('softMedium');
     pushOverlay('edit');
     setEditing(true);
   }, [editing]);
@@ -212,13 +258,27 @@ export function HomeScreen(props: HomeScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shownKey]);
 
+  // 끝 자리가 화면에 들어오면 반짝이는 카드 자리를 잠깐 보여 준 뒤 다음 묶음을 붙여요 — 내리면서 새 카드가 생기는 게 느껴지게
   useEffect(() => {
-    const el = sentinel.current;
+    const el = sentinel;
     if (!el || !more || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver((list) => list.some((e) => e.isIntersecting) && setLimit((l) => l + PAGE), { rootMargin: '600px 0px' });
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const io = new IntersectionObserver(
+      (list) => {
+        if (timer || !list.some((e) => e.isIntersecting)) return;
+        timer = setTimeout(() => {
+          timer = null;
+          setLimit((l) => l + PAGE);
+        }, MORE_DELAY_MS);
+      },
+      { rootMargin: '0px 0px 80px 0px' },
+    );
     io.observe(el);
-    return () => io.disconnect();
-  }, [more, shownKey]);
+    return () => {
+      io.disconnect();
+      if (timer) clearTimeout(timer);
+    };
+  }, [sentinel, more, shownKey]);
 
   useLayoutEffect(() => {
     if (savedScroll) window.scrollTo(0, savedScroll);
@@ -227,12 +287,18 @@ export function HomeScreen(props: HomeScreenProps) {
     };
   }, []);
 
+  const [refreshing, setRefreshing] = useState(false);
   const refresh = useCallback(
     async (manual: boolean) => {
       lastRefresh.current = Date.now();
-      const result = await refreshQuotes(items);
-      logEvent('refresh', { trigger: manual ? 'manual' : 'auto', result });
-      if (manual) onToast(result === 'error' ? '시세를 불러오지 못했어요' : '지금 시세로 바꿨어요');
+      setRefreshing(true);
+      try {
+        const result = await refreshQuotes(items);
+        logEvent('refresh', { trigger: manual ? 'manual' : 'auto', result });
+        if (manual) onToast(result === 'error' ? '시세를 불러오지 못했어요' : '지금 시세로 바꿨어요');
+      } finally {
+        setRefreshing(false);
+      }
     },
     [items, onToast],
   );
@@ -293,7 +359,7 @@ export function HomeScreen(props: HomeScreenProps) {
           <div style={{ display: 'flex', gap: 6, marginRight: 20 }}>
             {items.length ? <HeaderButton icon="search" label="내 종목에서 찾기" onClick={() => setSearching((v) => !v)} /> : null}
             <HeaderButton icon="plus" label="종목 담기" onClick={() => onAdd('header')} />
-            {items.length ? <HeaderButton icon="refresh" label={refreshLabel} onClick={() => void refresh(true)} /> : null}
+            {items.length ? <HeaderButton icon="refresh" label={refreshLabel} spinning={refreshing} onClick={() => void refresh(true)} /> : null}
           </div>
         }
       />
@@ -360,14 +426,16 @@ export function HomeScreen(props: HomeScreenProps) {
           <section aria-label="내 종목 차트" style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '16px 20px 0' }}>
             {shown.map((it, i) => (
               <Fragment key={it.id}>
-                <StockCard
-                  item={it}
-                  entry={cards.entries[it.id]}
-                  info={symbolIndex.get(it.symbol)}
-                  onOpen={onOpen}
-                  onRetry={(x) => void retryCard(x)}
-                  onLongPress={startEdit}
-                />
+                <Appear id={it.id} delay={(i % PAGE) * 70}>
+                  <StockCard
+                    item={it}
+                    entry={cards.entries[it.id]}
+                    info={symbolIndex.get(it.symbol)}
+                    onOpen={onOpen}
+                    onRetry={(x) => void retryCard(x)}
+                    onLongPress={startEdit}
+                  />
+                </Appear>
                 {/* 배너 광고 banner-home: 둘째 카드 뒤 1개(카드가 하나면 그 뒤) — 계약 events.md */}
                 {i === Math.min(1, shown.length - 1) ? <AdBanner adGroupId={AD_GROUPS.bannerHome} onResult={(result) => logEvent('ad_banner', { slot: 'home', result })} /> : null}
               </Fragment>
@@ -382,12 +450,7 @@ export function HomeScreen(props: HomeScreenProps) {
               </Text>
             ) : null}
             {more ? (
-              <div ref={sentinel} aria-label="다음 종목을 불러오는 중" style={{ background: colors.background, borderRadius: 16, padding: 20, textAlign: 'center' }}>
-                <span aria-hidden="true" style={{ display: 'block', height: 120, borderRadius: 12, background: colors.grey100 }} />
-                <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 12 }}>
-                  다음 종목을 불러오고 있어요
-                </Text>
-              </div>
+              <MoreLoader refEl={setSentinel} />
             ) : filter === 'all' && !query.trim() ? (
               <Button display="block" size="large" variant="weak" onClick={() => onAdd('list_end')} style={{ marginTop: 6 }}>
                 종목 담기

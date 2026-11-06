@@ -102,6 +102,12 @@ function initialRoute(): Route {
 
 const listeners = new Set<() => void>();
 
+/** 마지막 화면 이동 — 앞으로(navigate) · 뒤로(토스앱 뒤로가기 · history.back). 화면이 들어오는 방향에 써요 */
+let lastMove: 'push' | 'pop' = 'push';
+export function lastNavigation(): 'push' | 'pop' {
+  return lastMove;
+}
+
 function emit(): void {
   listeners.forEach((listener) => listener());
 }
@@ -132,6 +138,7 @@ export function launchSource(): 'direct' | 'push' | 'link' {
 export function navigate(route: Route): void {
   const hash = routeToHash(route);
   if (window.location.hash === hash) return;
+  lastMove = 'push';
   window.history.pushState({ depth: currentDepth() + 1 }, '', hash);
   emit();
 }
@@ -162,9 +169,10 @@ export function goBack(): void {
   baseRoute = HOME;
   const hash = window.location.hash;
   if (hash && hash !== '#' && hash !== '#/') {
-    navigate(HOME);
-    return;
+    // 홈을 한 칸 쌓지만 사용자에겐 '뒤로'예요
+    window.history.pushState({ depth: currentDepth() + 1 }, '', routeToHash(HOME));
   }
+  lastMove = 'pop';
   emit();
 }
 
@@ -192,13 +200,17 @@ export function useRoute(): Route {
 
   useEffect(() => {
     const update = () => setRoute(currentRoute());
+    const onPop = () => {
+      lastMove = 'pop';
+      update();
+    };
     listeners.add(update);
-    window.addEventListener('popstate', update);
+    window.addEventListener('popstate', onPop);
     window.addEventListener('hashchange', update);
     const uninstall = installDevBackHandler();
     return () => {
       listeners.delete(update);
-      window.removeEventListener('popstate', update);
+      window.removeEventListener('popstate', onPop);
       window.removeEventListener('hashchange', update);
       uninstall();
     };

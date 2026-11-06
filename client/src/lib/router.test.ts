@@ -1,6 +1,8 @@
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { parseRoute, resolveHash, routeFromSchemeUrl, routeToHash, type Route } from './router';
+import { haptic } from './haptic';
+import { lastNavigation, navigate, parseRoute, resolveHash, routeFromSchemeUrl, routeToHash, useRoute, type Route } from './router';
 
 describe('parseRoute · routeToHash', () => {
   const routes: Route[] = [
@@ -53,5 +55,24 @@ describe('resolveHash', () => {
     expect(resolveHash('', { name: 'market' })).toEqual({ name: 'market' });
     expect(resolveHash('#/', { name: 'settings' })).toEqual({ name: 'settings' });
     expect(resolveHash('#/add', { name: 'market' })).toEqual({ name: 'add' });
+  });
+});
+
+describe('화면이 들어오는 방향', () => {
+  it('앞으로 가면 push, 토스앱 뒤로가기(popstate)면 pop', () => {
+    const { result } = renderHook(() => useRoute());
+    act(() => navigate({ name: 'market' }));
+    expect(lastNavigation()).toBe('push');
+    expect(result.current).toEqual({ name: 'market' });
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(lastNavigation()).toBe('pop');
+    act(() => navigate({ name: 'settings' }));
+    expect(lastNavigation()).toBe('push');
+  });
+
+  it('진동은 토스앱 밖(브릿지 없음)에서 조용히 넘어가요', () => {
+    expect(() => haptic('success')).not.toThrow();
   });
 });

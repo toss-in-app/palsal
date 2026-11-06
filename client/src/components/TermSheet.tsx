@@ -15,6 +15,7 @@ export function TermWord({ children, label, onClick }: { children: ReactNode; la
         e.stopPropagation();
         onClick();
       }}
+      className="tap"
       style={{ display: 'inline', margin: 0, padding: '1px 5px', border: 0, borderRadius: 6, background: colors.grey100, font: 'inherit', fontWeight: 600, color: 'inherit', cursor: 'pointer' }}
     >
       {children}
@@ -71,6 +72,7 @@ export function TermSheet({ glossary, term, onChange }: TermSheetProps) {
                       key={k}
                       type="button"
                       onClick={() => onChange(k)}
+                      className="tap"
                       style={{ height: 32, padding: '0 12px', borderRadius: 16, border: `1px solid ${colors.grey200}`, background: colors.background, font: 'inherit', fontSize: 13, fontWeight: 600, color: colors.grey700, cursor: 'pointer' }}
                     >
                       {glossary[k].title}

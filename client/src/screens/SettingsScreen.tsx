@@ -52,11 +52,12 @@ function HelpRow({ open, title, onToggle, children }: { open: boolean; title: st
   return (
     <>
       <ListRow
+        withTouchEffect
         onClick={onToggle}
         aria-expanded={open}
         contents={<ListRow.Texts type="1RowTypeA" top={title} />}
         right={
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.grey400} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: open ? 'rotate(180deg)' : undefined }}>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.grey400} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 200ms ease' }}>
             <path d="M6 9l6 6 6-6" />
           </svg>
         }
@@ -83,6 +84,7 @@ export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerm
       <ListHeader title={<ListHeader.TitleParagraph typography="t7" fontWeight="bold" color={colors.grey700}>알림</ListHeader.TitleParagraph>} />
       <List>
         <ListRow
+          withTouchEffect={notification.available}
           onClick={notification.available ? notification.onPress : undefined}
           disabled={!notification.available}
           contents={<ListRow.Texts type="2RowTypeA" top="매일 RSI 알림" bottom="매일 오전 10시에 내 종목 RSI를 확인하라고 알려요" />}
@@ -153,8 +155,8 @@ export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerm
 
       <Border variant="height16" />
       <List>
-        <ListRow withArrow onClick={onOpenTerms} contents={<ListRow.Texts type="1RowTypeA" top="이용약관" />} />
-        <ListRow withArrow onClick={onOpenPrivacy} contents={<ListRow.Texts type="1RowTypeA" top="개인정보처리방침" />} />
+        <ListRow withArrow withTouchEffect onClick={onOpenTerms} contents={<ListRow.Texts type="1RowTypeA" top="이용약관" />} />
+        <ListRow withArrow withTouchEffect onClick={onOpenPrivacy} contents={<ListRow.Texts type="1RowTypeA" top="개인정보처리방침" />} />
       </List>
 
       <div style={{ padding: '24px 24px 0' }}>

@@ -60,7 +60,7 @@ function PriceText({ text }: { text: string }) {
 }
 
 function Skel({ w, h, r = 8 }: { w: number | string; h: number; r?: number }) {
-  return <span aria-hidden="true" style={{ display: 'block', width: w, height: h, borderRadius: r, background: colors.grey100 }} />;
+  return <span aria-hidden="true" className="skeleton" style={{ display: 'block', width: w, height: h, borderRadius: r }} />;
 }
 
 /** 내 종목 카드(시안 v2 '카드 ㄱ': 숫자 위, 차트 아래 — 원본 카드 정보 전부) */
@@ -147,7 +147,7 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
             : null;
 
   return (
-    <article role="link" tabIndex={0} aria-label={label} {...press} onKeyDown={onKey} style={{ ...card, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}>
+    <article role="link" tabIndex={0} aria-label={label} {...press} onKeyDown={onKey} className="tap" style={{ ...card, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}>
       {/* 훑어볼 때 먼저 보이게 상태(RSI · 구간)를 이름 옆 맨 위에 — 카드의 주인공 숫자는 이것 하나 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{ minWidth: 0, flex: 1 }}>
@@ -213,7 +213,7 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
             </Text>
           ) : null}
 
-          <div style={{ marginTop: 12 }}>
+          <div key={a ? 'chart' : 'skeleton'} className={a ? 'fade-in' : undefined} style={{ marginTop: 12 }}>
             {a ? (
               <PriceChart model={a.chart} tz={tz} interval={item.interval} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
             ) : (

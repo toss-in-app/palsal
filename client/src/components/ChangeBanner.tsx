@@ -59,7 +59,7 @@ export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps)
         <Text typography="t6" fontWeight="bold" color={colors.grey900}>
           최근 바뀐 것 <span style={{ color: colors.grey600, fontWeight: 600 }}>{items.length}</span>
         </Text>
-        <button type="button" onClick={onAll} style={{ border: 0, background: 'none', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 600, color: colors.grey600, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+        <button type="button" onClick={onAll} className="tap" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 600, color: colors.grey600, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
           모두 보기
           <Icon name="chev" size={14} color={colors.grey600} />
         </button>
@@ -73,6 +73,7 @@ export function ChangeBanner({ items, cards, onOpen, onAll }: ChangeBannerProps)
               key={`${c.watchId}|${c.kind}|${c.date}`}
               type="button"
               onClick={() => onOpen(c)}
+              className="tap"
               style={{
                 flex: 'none',
                 width: 'min(322px, calc(100% - 40px))',

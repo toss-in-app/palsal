@@ -121,6 +121,7 @@ export function AddScreen({ symbols, rank, watched, source, onAdd, onDone, onToa
           return (
             <ListRow
               key={e.s}
+              withTouchEffect={!done}
               onClick={done ? undefined : () => toggle(e.s)}
               left={
                 <span onClick={(ev) => ev.stopPropagation()}>

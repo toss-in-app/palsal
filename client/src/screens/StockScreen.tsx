@@ -91,6 +91,8 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   // 차트 크게 보기 — 히스토리 한 칸으로 쌓아 토스앱 뒤로가기가 이 화면으로 돌아오게(내 종목 편집 모드와 같은 방식)
   const [chartOpen, setChartOpen] = useState(false);
   const scrollBack = useRef<number | null>(null);
+  /** 큰 차트를 닫고 돌아왔는지(자세히가 살짝 나타나요) */
+  const backFromChart = useRef(false);
   const openChart = (part: 'price' | 'rsi') => {
     scrollBack.current = window.scrollY;
     pushOverlay('chart');
@@ -100,7 +102,9 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   useEffect(() => {
     if (!chartOpen) return;
     const onPop = () => {
-      if (!overlayActive('chart')) setChartOpen(false);
+      if (overlayActive('chart')) return;
+      backFromChart.current = true;
+      setChartOpen(false);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -148,7 +152,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
   }
 
   return (
-    <main style={{ paddingBottom: 40 }}>
+    <main className={backFromChart.current ? 'screen-fade' : undefined} style={{ paddingBottom: 40 }}>
       <div style={{ padding: '12px 24px 0' }}>
         <Text display="block" typography="t7" color={colors.grey600}>
           {codeLine(symbol, info)}
@@ -222,7 +226,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
         <>
           <div style={{ margin: '14px 20px 0' }}>
             {a ? (
-              <button type="button" aria-label="가격 차트 크게 보기" onClick={() => openChart('price')} style={chartButton}>
+              <button type="button" aria-label="가격 차트 크게 보기" onClick={() => openChart('price')} className="tap" style={chartButton}>
                 <PriceChart model={a.chart} tz={tz} interval={interval} width={350} height={200} label={`${name} 최근 ${a.chart.c.length}${barUnit} 가격과 이동평균`} />
               </button>
             ) : (
@@ -243,6 +247,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
               <button
                 type="button"
                 onClick={() => openChart('price')}
+                className="tap"
                 style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 0', border: 0, background: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, color: colors.grey700, cursor: 'pointer' }}
               >
                 <Icon name="expand" size={14} strokeWidth={2.2} />
@@ -279,6 +284,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
                   <button
                     type="button"
                     onClick={() => setTerm(`zone-${zone}`)}
+                    className="tap"
                     style={{ border: 0, cursor: 'pointer', font: 'inherit', fontSize: 12, fontWeight: 700, borderRadius: 6, padding: '3px 7px', color: zoneInk(zone), background: zoneBg(zone) }}
                   >
                     {ZONE_LABEL[zone]}
@@ -289,7 +295,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
           </div>
           <div style={{ margin: '0 20px' }}>
             {a ? (
-              <button type="button" aria-label="RSI 차트 크게 보기" onClick={() => openChart('rsi')} style={chartButton}>
+              <button type="button" aria-label="RSI 차트 크게 보기" onClick={() => openChart('rsi')} className="tap" style={chartButton}>
                 <RsiChart rsi={a.chart.rsi} label={`${name} 최근 ${a.chart.c.length}${barUnit} RSI 흐름, 30과 70 선`} />
               </button>
             ) : (
@@ -319,7 +325,8 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
                         <button
                           type="button"
                           onClick={() => setTerm(eventTerm(e.kind))}
-                          style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
+                          className="tap-row"
+                          style={{ width: 'calc(100% + 16px)', margin: '0 -8px', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 8px', borderRadius: 12, border: 0, background: 'none', textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
                         >
                           <span style={{ marginTop: 2, display: 'inline-flex', flex: 'none' }}>
                             <Icon name={icon} size={18} color={ink} strokeWidth={2.2} />

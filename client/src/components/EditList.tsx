@@ -109,6 +109,7 @@ export function EditList({ items, onRemove, onReorder }: EditListProps) {
               type="button"
               aria-label={`${label} 빼기`}
               onClick={() => onRemove(it)}
+              className="tap tap-soft"
               style={{ width: 28, height: 28, borderRadius: 14, border: 0, background: colors.red500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer', flex: 'none' }}
             >
               <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" aria-hidden="true">
