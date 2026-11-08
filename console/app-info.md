@@ -4,6 +4,7 @@
 - 사용자가 '검토 요청 전 확약 5개'에 동의(2026-11-05): ① 앱인토스에서 오픈할 수 있는 서비스 ② 환전·현금화·자금세탁 우려 없음 ③ 인허가·등록·신고 마침 ④ 부정행위·위법 행위 없음 ⑤ 위반 시 책임은 파트너사, 토스 손해 보상
 - 등록 직후 검토 요청은 4103('최초 등록이 끝나기 전에는 앱 정보와 번들을 함께 제출해요')으로 멈춤 — 정상. **앱 이름 외의 앱 정보는 저장되지 않았다** → 11단계 `initial_review_submit(miniAppId=97559)` 의 appInfo 에 아래 값을 다시 담는다(`initial-review.appinfo.json`).
 - 로고 uploadId `mcp-image:10169:1793859989:cd38798c-a8ae-475c-904e-108c60edcdea:png` — **2026-11-12 만료**. 그 뒤엔 `image_upload_url` 로 `console/logo.png` 를 다시 올린다.
+- **2026-11-08 확인: 콘솔에 저장된 앱 아이콘은 우리 로고가 아니라 기본 그림**(`miniapp_get` iconUri `…/live-managed-v1-6e77ef36-….png`, 파란 픽셀 무늬). `miniapp_create` 의 iconUploadId 가 안 붙었어요. 최초 검토 전엔 `miniapp_update_icon` 이 4103 으로 막혀 MCP 로 못 바꿔요 → **사용자가 콘솔 웹(미니앱 홈 https://apps-in-toss.toss.im/workspace/10169/mini-app/97559/home → 앱 정보 → 앱 로고)에 `console/logo.png` 를 올리거나**, 11단계 `initial_review_submit` 의 appInfo 에 새 uploadId 로 넣는다(그때 `image_upload_url` 로 다시 올려 uploadId 갱신 — 7일 만료). 앱 안에는 9판부터 로고 표(내 종목 머리 · 설정 맨 아래)가 있어요(`client/src/components/Logo.tsx`).
 - 사용 연령은 신규 앱 기본 19~99, 고객문의 이메일은 콘솔 계정 이메일로 자동(바꾸려면 콘솔 웹 '앱 정보 > 고객센터 정보').
 
 | 칸 | 넣은 값 |
