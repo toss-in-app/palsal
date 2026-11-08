@@ -27,7 +27,7 @@
 | `toast_signal` | 보는 동안 구간 진입 토스트 | `kind`(low/high/summary) |
 | `notification_prompt_view` | 알림 받기 카드·스위치가 처음 보일 때 | `where`(changes/settings) |
 | `notification_agree` | 알림 동의 결과 | `result`(agreed/declined/error/unsupported), `where` |
-| `ad_banner` | 배너 결과(배너마다) | `slot`(home/market), `result`(rendered/nofill/failed), `index`(home 만 — 몇 번째 배너인지 0부터, v1.17) |
+| `ad_banner` | 배너 결과 | `slot`(home/market), `result`(rendered/nofill/failed) |
 | `data_error` | Supabase·정적 JSON 실패 | `endpoint`(quotes/bars/market/track/symbols/universe/content), `code` |
 
 **핵심 지표 후보(9단계 콘솔 등록)**: 활성 = `stock_view` · 전환 = `watch_add`(대표), `notification_agree`(agreed), `change_open`.
@@ -36,7 +36,7 @@
 
 | 이름 | 유형 | 지점 | 규칙 |
 |------|------|------|------|
-| `banner-home` | 배너 | 내 종목 둘째 카드 뒤부터 **카드 두 장마다 1개**(2·4·6번째 카드 뒤 — 내려가며 새로 붙는 카드에도 계속, 카드가 하나면 그 뒤). v1.17(2026-11-08 사용자 "계속 2개마다 있게") | 배너마다 따로 부착, refresh 없음, 실패하면 그 자리만 숨김 |
+| `banner-home` | 배너 | 내 종목 둘째 카드 뒤 1개(카드가 2장 미만이면 마지막 카드 뒤) | refresh 없음, 실패하면 자리 숨김 |
 | `banner-market` | 배너 | 시장 '지금 RSI 30 아래인 큰 종목' 뒤 1개 | 같음 |
 
 **배너만** — 전면·리워드 지면 없음(2026-11-05 사용자 결정 "전면광고 띄우지말고 배너만 만들자"; 리워드는 1.1 후보로 남김). 광고를 못 불러와도 기능은 막히지 않는다.

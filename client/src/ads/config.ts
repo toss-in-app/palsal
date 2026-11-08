@@ -19,7 +19,7 @@ function pick(value: string | undefined, fallback: string | null): string {
 }
 
 export const AD_GROUPS = {
-  /** `banner-home`: 내 종목 둘째 카드 뒤부터 카드 두 장마다(내려가며 붙는 카드에도 계속) */
+  /** `banner-home`: 내 종목 둘째 카드 뒤 (배너 1개) */
   bannerHome: pick(import.meta.env.VITE_AD_GROUP_BANNER_HOME, TEST_BANNER_GROUP),
   /** `banner-market`: 시장 '지금 RSI 30 아래인 큰 종목' 뒤 (배너 1개) */
   bannerMarket: pick(import.meta.env.VITE_AD_GROUP_BANNER_MARKET, TEST_BANNER_GROUP),
