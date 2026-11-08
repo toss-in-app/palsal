@@ -454,8 +454,8 @@ export function HomeScreen(props: HomeScreenProps) {
                     onLongPress={startEdit}
                   />
                 </Appear>
-                {/* 배너 광고 banner-home: 둘째 카드 뒤 1개(카드가 하나면 그 뒤) — 계약 events.md */}
-                {i === Math.min(1, shown.length - 1) ? <AdBanner adGroupId={AD_GROUPS.bannerHome} onResult={(result) => logEvent('ad_banner', { slot: 'home', result })} /> : null}
+                {/* 배너 광고 banner-home: 둘째 카드 뒤부터 카드 두 장마다 1개(카드가 하나면 그 뒤) — 내려가며 새 카드가 붙어도 계속(사용자 2026-11-08 "계속 2개마다 있게"), 계약 events.md */}
+                {(i + 1) % 2 === 0 || shown.length === 1 ? <AdBanner adGroupId={AD_GROUPS.bannerHome} onResult={(result) => logEvent('ad_banner', { slot: 'home', result, index: Math.floor(i / 2) })} /> : null}
               </Fragment>
             ))}
             {filtered.length === 0 ? (

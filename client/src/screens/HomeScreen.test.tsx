@@ -198,7 +198,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText('엔비디아')).toBeInTheDocument();
   });
 
-  it('배너 광고는 둘째 카드 뒤 하나, 전면 광고 안내·AD 표시는 없어요(배너만)', () => {
+  it('배너 광고는 둘째 카드 뒤 하나(카드 3장), 전면 광고 안내·AD 표시는 없어요(배너만)', () => {
     const items = [item('035720.KS'), item('005930.KS'), item('NVDA')];
     renderHome(items, { entries: { '035720.KS|1d': entry(bars(-1)), '005930.KS|1d': entry(bars(1)), 'NVDA|1d': entry(bars(1)) }, latestAt: null });
     const kids = Array.from(screen.getByRole('region', { name: '내 종목 차트' }).children);
@@ -206,6 +206,15 @@ describe('HomeScreen', () => {
     expect(screen.getAllByTestId('ad-banner')).toHaveLength(1);
     expect(screen.queryByText('AD')).not.toBeInTheDocument();
     expect(screen.queryByText(/광고가 한 번 나와요/)).not.toBeInTheDocument();
+  });
+
+  it('배너는 카드 두 장마다 — 2·4번째 카드 뒤(내려가며 붙는 카드에도 계속)', () => {
+    const e = entry(bars(1));
+    const symbols = ['035720.KS', '005930.KS', 'NVDA', 'AAPL'];
+    renderHome(symbols.map(item), { entries: Object.fromEntries(symbols.map((s) => [`${s}|1d`, e])), latestAt: null });
+    const kids = Array.from(screen.getByRole('region', { name: '내 종목 차트' }).children);
+    expect(kids.map((k) => k.getAttribute('data-testid'))).toEqual([null, null, 'ad-banner', null, null, 'ad-banner', null]);
+    expect(screen.getAllByTestId('ad-banner')).toHaveLength(2);
   });
 
   it('카드가 하나면 배너는 그 뒤', () => {
