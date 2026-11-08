@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { logEventOnce } from '../lib/analytics';
 
+import { Logo } from '../components/Logo';
 import type { ContentFile } from '../content';
 import { zoneInk, zoneBg } from '../lib/palette';
 
@@ -174,9 +175,18 @@ export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerm
         <Text display="block" typography="t7" color={colors.grey600} style={{ ...para, marginTop: 14 }}>
           {content.disclaimer}
         </Text>
-        <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 14 }}>
-          {`앱 버전 ${__APP_VERSION__} · 도움말 버전 ${content.contentVersion}`}
-        </Text>
+        {/* 앱 이름·로고·버전(사용자 2026-11-08 "로고도 넣어줘") */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20 }}>
+          <Logo size={44} tile />
+          <span>
+            <Text display="block" typography="t6" fontWeight="semibold" color={colors.grey900}>
+              팔껄살껄
+            </Text>
+            <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2 }}>
+              {`앱 버전 ${__APP_VERSION__} · 도움말 버전 ${content.contentVersion}`}
+            </Text>
+          </span>
+        </div>
       </div>
     </main>
   );

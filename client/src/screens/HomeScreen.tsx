@@ -9,6 +9,7 @@ import { EditList } from '../components/EditList';
 import { logEvent, logEventOnce } from '../lib/analytics';
 import { summaryText } from '../lib/changeView';
 import { Icon, type IconName } from '../components/Icon';
+import { Logo } from '../components/Logo';
 import { Pill } from '../components/Pill';
 import { StockCard } from '../components/StockCard';
 import { symbolIndex } from '../content';
@@ -353,7 +354,13 @@ export function HomeScreen(props: HomeScreenProps) {
     <main style={{ minHeight: '100vh', background: PAGE_BG, paddingBottom: 120 }}>
       <Top
         style={{ background: PAGE_BG }}
-        subtitleTop={<Top.SubtitleParagraph size={13}>{`${formatDateLabel(today)}${cards.latestAt ? ` · ${formatKstTime(cards.latestAt)} 업데이트` : ''}`}</Top.SubtitleParagraph>}
+        // 로고 표는 토스 홈처럼 첫 탭 왼쪽 위에만(다른 탭·자세히엔 없어요). 네비게이션 바가 이름을 보여 주니 글자는 빼고 표만
+        subtitleTop={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Logo size={22} />
+            <Top.SubtitleParagraph size={13}>{`${formatDateLabel(today)}${cards.latestAt ? ` · ${formatKstTime(cards.latestAt)} 업데이트` : ''}`}</Top.SubtitleParagraph>
+          </span>
+        }
         title={<Top.TitleParagraph size={28}>{`내 종목 ${items.length}`}</Top.TitleParagraph>}
         right={
           <div style={{ display: 'flex', gap: 6, marginRight: 20 }}>
