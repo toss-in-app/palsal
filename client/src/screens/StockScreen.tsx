@@ -218,14 +218,16 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
               </Text>
             ) : null}
           </div>
-        ) : (
-          <span aria-hidden="true" style={{ display: 'block', width: 160, height: 30, borderRadius: 8, background: colors.grey100, marginTop: 8 }} />
+        ) : failed ? null : (
+          // 받는 동안만 자리 표시(실패하면 아래 '시세를 불러오지 못했어요'가 말해요 — 회색 상자가 남아 있으면 아직 받는 중처럼 보여요)
+          <span aria-hidden="true" className="skeleton" style={{ display: 'block', width: 160, height: 30, borderRadius: 8, marginTop: 8 }} />
         )}
         {/* 차트를 누르고 있는 동안: 아래 줄들은 자리를 지킨 채 숨기고 그 봉의 날짜를 보여 줘요 — 높이가 바뀌어 차트가 손가락 밑에서 움직이지 않게 */}
         <div style={{ position: 'relative' }}>
           <div style={pickedLabel !== null ? { visibility: 'hidden' } : undefined} aria-hidden={pickedLabel !== null || undefined}>
+            {/* 말(TermWord)은 회색 바탕 위라 글자색을 grey700 으로 — grey600 은 grey100 위에서 4.2:1 로 모자라요 */}
             {quote?.ext_session && quote.ext_price && quote.ext_change_pct !== null ? (
-              <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              <Text display="block" typography="t7" color={colors.grey700} style={{ marginTop: 4, ...tabular }}>
                 <TermWord label="프리마켓·애프터마켓 뜻 보기" onClick={() => setTerm('ext-hours')}>
                   {quote.ext_session === 'pre' ? '프리마켓' : '애프터마켓'}
                 </TermWord>{' '}
@@ -233,7 +235,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
               </Text>
             ) : null}
             {a ? (
-              <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              <Text display="block" typography="t7" color={colors.grey700} style={{ marginTop: 4, ...tabular }}>
                 <TermWord label="5년 최고가 뜻 보기" onClick={() => setTerm('high5y')}>
                   5년 최고가
                 </TermWord>
@@ -247,7 +249,7 @@ export function StockScreen({ symbol, interval: initial, info, cards, watched, g
               </Text>
             ) : null}
             {at ? (
-              <Text display="block" typography="st12" color={stale ? colors.orange700 : colors.grey600} style={{ marginTop: 4, ...tabular }}>
+              <Text display="block" typography="st12" color={stale ? colors.grey700 : colors.grey600} fontWeight={stale ? 'semibold' : 'regular'} style={{ marginTop: 4, ...tabular }}>
                 {stale ? `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요` : `${formatKstTime(at)} 기준${delayed ? ' · 약 20분 늦은 시세' : ''}`}
               </Text>
             ) : null}

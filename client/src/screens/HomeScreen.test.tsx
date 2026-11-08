@@ -185,6 +185,19 @@ describe('HomeScreen', () => {
     expect(screen.getByText('내 종목에서 찾는 종목이 없어요')).toBeInTheDocument();
   });
 
+  it('찾기를 머리 단추로 닫으면 검색어도 지워져 목록이 다 돌아와요(전엔 걸러진 채 남았어요)', () => {
+    const items = [item('035720.KS'), item('005930.KS'), item('NVDA')];
+    renderHome(items, { entries: {}, latestAt: null });
+    fireEvent.click(screen.getByRole('button', { name: '내 종목에서 찾기' }));
+    fireEvent.change(screen.getByLabelText('내 종목에서 찾기', { selector: 'input' }), { target: { value: 'ㅅㅅ' } });
+    expect(screen.queryByText('카카오')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '찾기 닫기' }));
+    expect(screen.queryByLabelText('내 종목에서 찾기', { selector: 'input' })).not.toBeInTheDocument();
+    expect(screen.getByText('카카오')).toBeInTheDocument();
+    expect(screen.getByText('삼성전자')).toBeInTheDocument();
+    expect(screen.getByText('엔비디아')).toBeInTheDocument();
+  });
+
   it('배너 광고는 둘째 카드 뒤 하나, 전면 광고 안내·AD 표시는 없어요(배너만)', () => {
     const items = [item('035720.KS'), item('005930.KS'), item('NVDA')];
     renderHome(items, { entries: { '035720.KS|1d': entry(bars(-1)), '005930.KS|1d': entry(bars(1)), 'NVDA|1d': entry(bars(1)) }, latestAt: null });

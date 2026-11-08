@@ -342,7 +342,7 @@ export function HomeScreen(props: HomeScreenProps) {
             onReorder(ids);
           }}
         />
-        <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '12px 24px 0', lineHeight: 1.5 }}>
+        <Text display="block" typography="t7" color={colors.grey700} style={{ margin: '12px 24px 0', lineHeight: 1.5 }}>
           같은 종목을 일봉·주봉으로 따로 담았다면 각각 따로 움직여요.
         </Text>
       </main>
@@ -357,7 +357,17 @@ export function HomeScreen(props: HomeScreenProps) {
         title={<Top.TitleParagraph size={28}>{`내 종목 ${items.length}`}</Top.TitleParagraph>}
         right={
           <div style={{ display: 'flex', gap: 6, marginRight: 20 }}>
-            {items.length ? <HeaderButton icon="search" label="내 종목에서 찾기" onClick={() => setSearching((v) => !v)} /> : null}
+            {/* 찾기를 닫으면 검색어도 지워요 — 전엔 칸만 사라지고 목록은 걸러진 채 남아 종목이 없어진 것처럼 보였어요 */}
+            {items.length ? (
+              <HeaderButton
+                icon="search"
+                label={searching ? '찾기 닫기' : '내 종목에서 찾기'}
+                onClick={() => {
+                  if (searching) setQuery('');
+                  setSearching((v) => !v);
+                }}
+              />
+            ) : null}
             <HeaderButton icon="plus" label="종목 담기" onClick={() => onAdd('header')} />
             {items.length ? <HeaderButton icon="refresh" label={refreshLabel} spinning={refreshing} onClick={() => void refresh(true)} /> : null}
           </div>
@@ -411,13 +421,14 @@ export function HomeScreen(props: HomeScreenProps) {
       ) : (
         <>
           {/* 카드마다 쓰던 'RSI 14' 라벨은 목록 머리에 한 번(ref/designers/madia-uiux.md 5절) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 24px 0' }}>
+          {/* 좁은 화면(320)이면 'RSI 14 기준'이 줄을 바꿔 내려와요(잘리지 않게). 회색 바탕 위 글자는 grey700(4.5:1 넘게) */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 8px', padding: '8px 24px 0' }}>
             <div role="group" aria-label="RSI로 걸러 보기" style={{ display: 'flex', gap: 6 }}>
               <Pill on={filter === 'all'} onClick={() => onFilter('all')}>{`전체 ${items.length}`}</Pill>
               <Pill on={filter === 'low'} onClick={() => onFilter('low')}>{`30 아래 ${counts.low}`}</Pill>
               <Pill on={filter === 'high'} onClick={() => onFilter('high')}>{`70 위 ${counts.high}`}</Pill>
             </div>
-            <Text typography="t7" color={colors.grey600} style={{ marginLeft: 'auto', flex: 'none' }}>
+            <Text typography="t7" color={colors.grey700} style={{ marginLeft: 'auto', flex: 'none' }}>
               RSI 14 기준
             </Text>
           </div>
@@ -441,7 +452,7 @@ export function HomeScreen(props: HomeScreenProps) {
               </Fragment>
             ))}
             {filtered.length === 0 ? (
-              <Text display="block" typography="t6" color={colors.grey600} style={{ padding: '28px 8px', textAlign: 'center' }}>
+              <Text display="block" typography="t6" color={colors.grey700} style={{ padding: '28px 8px', textAlign: 'center' }}>
                 {query.trim()
                   ? '내 종목에서 찾는 종목이 없어요'
                   : filter === 'low'
@@ -460,7 +471,8 @@ export function HomeScreen(props: HomeScreenProps) {
         </>
       )}
 
-      <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '24px 24px 0', lineHeight: 1.6 }}>
+      {/* 회색 바탕 위 작은 글자는 grey700 — grey600 은 greyBackground 위에서 4.2:1 */}
+      <Text display="block" typography="t7" color={colors.grey700} style={{ margin: '24px 24px 0', lineHeight: 1.6 }}>
         {disclaimer}
       </Text>
     </main>

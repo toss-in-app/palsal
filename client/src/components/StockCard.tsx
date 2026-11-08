@@ -129,11 +129,12 @@ export const StockCard = memo(function StockCard({ item, entry, info, onOpen, on
   const footNote: { text: ReactNode; ink: string } | null = failed
     ? null
     : stale && at
-      ? { text: `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요`, ink: colors.orange700 }
+      ? // 글이 뜻을 다 말해요 — 주황(orange700)은 흰 바탕에 2.8:1 이라 13px 글자로는 안 읽혀 진회색으로
+        { text: `${formatKstTime(at)} 기준 · 갱신이 늦어지고 있어요`, ink: colors.grey700 }
       : entry?.status === 'pending' && !a
         ? { text: '처음 보는 종목이라 시세를 받는 중이에요', ink: colors.grey600 }
         : !a
-          ? { text: '불러오는 중', ink: colors.grey500 }
+          ? { text: '불러오는 중', ink: colors.grey600 }
           : item.interval !== '1d'
             ? {
                 text: (

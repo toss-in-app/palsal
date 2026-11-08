@@ -91,9 +91,19 @@ body {
   animation: palsal-shimmer 1.3s ease-in-out infinite;
 }
 .spin { animation: palsal-spin 0.9s linear infinite; }
+/* 펼침 화살표(설정 도움말): 열리면 뒤집혀요 */
+.turn { transition: transform 200ms ease; }
+.turn-open { transform: rotate(180deg); }
+/* 키보드로 차트에 초점을 두면 테두리(손가락·마우스로 누를 땐 안 나와요) */
+.chart-surface:focus-visible {
+  outline: 2px solid #3182f6;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .tap:active:not(:disabled),
   .tap-soft:active:not(:disabled) { transform: none; }
+  .tap, .tap-row, .row-stretch::before, .turn { transition: none; }
   .screen-push, .screen-pop, .screen-fade, .screen-zoom, .rise-in, .fade-in, .skeleton, .spin { animation: none; }
 }

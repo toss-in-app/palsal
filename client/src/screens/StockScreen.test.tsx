@@ -41,6 +41,19 @@ function renderStock(watched: WatchItem[] = [], quote: QuoteRow | null = null) {
 }
 
 describe('StockScreen', () => {
+  it('시세를 못 받았으면 안내 + 다시 시도만 — 가격 자리의 회색 상자(받는 중 표시)는 남기지 않아요', () => {
+    const cards: CardsState = { entries: { 'ZZZZ9|1d': { status: 'error', bars: null, quote: null, last: null, analysis: null } }, latestAt: null };
+    const { container } = render(
+      <TDSMobileAITProvider brandPrimaryColor="#3182F6">
+        <StockScreen symbol="ZZZZ9" interval="1d" info={undefined} cards={cards} watched={[]} glossary={bundledContent.glossary} disclaimer={bundledContent.disclaimer} onAdd={vi.fn()} onRemove={vi.fn()} />
+      </TDSMobileAITProvider>,
+    );
+    expect(screen.getByText('시세를 불러오지 못했어요')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument();
+    expect(container.querySelector('.skeleton')).toBeNull();
+    expect(screen.getByRole('button', { name: '내 종목에 담기 · 일봉' })).toBeInTheDocument();
+  });
+
   it('이름 · 가격 · 두 차트 · 소식 · 면책', () => {
     renderStock();
     expect(screen.getByText('카카오')).toBeInTheDocument();

@@ -57,7 +57,7 @@ function HelpRow({ open, title, onToggle, children }: { open: boolean; title: st
         aria-expanded={open}
         contents={<ListRow.Texts type="1RowTypeA" top={title} />}
         right={
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.grey400} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 200ms ease' }}>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.grey500} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={open ? 'turn turn-open' : 'turn'}>
             <path d="M6 9l6 6 6-6" />
           </svg>
         }
@@ -89,7 +89,8 @@ export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerm
           disabled={!notification.available}
           contents={<ListRow.Texts type="2RowTypeA" top="매일 RSI 알림" bottom="매일 오전 10시에 내 종목 RSI를 확인하라고 알려요" />}
           right={
-            <Text typography="t7" fontWeight="semibold" color={notification.status === 'agreed' ? colors.blue500 : colors.grey600}>
+            // '켜기'는 누르면 되는 일이라 파랑(행동), '받는 중'·'받지 않음'은 상태라 진회색 — 예전엔 반대로 칠해 상태가 버튼처럼 보였어요
+            <Text typography="t7" fontWeight="semibold" color={!notification.available ? colors.grey600 : notification.status === 'agreed' ? colors.grey700 : notification.status === 'declined' ? colors.grey700 : colors.blue500}>
               {!notification.available ? '준비 중' : STATUS_TEXT[notification.status === 'agreed' ? 'agreed' : notification.status === 'declined' ? 'declined' : 'ready']}
             </Text>
           }

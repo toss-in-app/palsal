@@ -134,7 +134,7 @@ export function EditList({ items, onRemove, onReorder }: EditListProps) {
               onKeyDown={onKey(id)}
               style={{ border: 0, background: 'none', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: lifted ? 'grabbing' : 'grab', touchAction: 'none', flex: 'none' }}
             >
-              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.grey400} strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.grey500} strokeWidth={2} strokeLinecap="round" aria-hidden="true">
                 <path d="M5 9h14M5 15h14" />
               </svg>
             </button>

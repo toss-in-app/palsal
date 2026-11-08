@@ -110,7 +110,7 @@ export function AddScreen({ symbols, rank, watched, source, onAdd, onDone, onToa
           </Pill>
         ))}
       </div>
-      <Text display="block" typography="t7" color={colors.grey500} style={{ margin: '10px 24px 4px' }}>
+      <Text display="block" typography="t7" color={colors.grey600} style={{ margin: '10px 24px 4px' }}>
         {query.trim() && !results.length ? '찾는 종목이 없어요. 다른 이름이나 티커로 찾아보세요.' : hint}
       </Text>
 

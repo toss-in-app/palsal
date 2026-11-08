@@ -69,8 +69,9 @@ function FearGreedStrip({ fg, onInfo }: { fg: MarketPayload['fearGreed']; onInfo
   return (
     <section aria-label="공포탐욕지수">
       <div ref={strip} onScroll={onScroll} style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '4px 20px 0', scrollPadding: '0 20px', scrollbarWidth: 'none' }}>
+        {/* 다음 카드가 24px 보이게(전엔 8px 라 옆으로 넘길 수 있다는 걸 점 3개로만 알 수 있었어요) */}
         {items.map(([title, v]) => (
-          <div key={title} style={{ ...card, flex: 'none', width: 'calc(100% - 40px)', scrollSnapAlign: 'start', padding: '20px 20px 16px' }}>
+          <div key={title} style={{ ...card, flex: 'none', width: 'calc(100% - 56px)', scrollSnapAlign: 'start', padding: '20px 20px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Text typography="t6" fontWeight="bold" color={colors.grey900}>
                 {title}
@@ -289,7 +290,7 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
             </Text>
           </section>
 
-          <Text display="block" typography="st12" color={colors.grey600} style={{ margin: '16px 24px 0' }}>
+          <Text display="block" typography="st12" color={colors.grey700} style={{ margin: '16px 24px 0' }}>
             {`30분마다 다시 계산해요 · ${formatKstTime(Date.parse(data.computedAt))} 기준`}
           </Text>
         </>

@@ -157,12 +157,13 @@ export function StockChart({ model, name, tz, interval, point, onPoint, hint, be
   const first = Math.max(0, Math.round(viewStart(view)));
   const lastShown = Math.min(n - 1, Math.round(view.end));
   const rangeLabel = `${name} ${INTERVAL_LABEL[interval]} 차트, ${formatBarPeriod(model.t[first], tz, interval)}부터 ${formatBarPeriod(model.t[lastShown], tz, interval)}까지 ${lastShown - first + 1}${BAR_UNIT[interval]}`;
-  const surface = { position: 'relative', touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', outline: 'none', cursor: 'grab' } as const;
+  // 키보드 초점 테두리는 index.css .chart-surface:focus-visible(손가락으로 누를 땐 안 보여요) — outline: none 으로 지우지 않아요
+  const surface = { position: 'relative', touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', cursor: 'grab' } as const;
 
   return (
     <>
       <div ref={boxRef} style={{ margin: '14px 20px 0' }}>
-        <div ref={priceRef} role="img" aria-label={rangeLabel} aria-describedby={hint ? hintId : undefined} tabIndex={0} onKeyDown={onKey} style={surface}>
+        <div ref={priceRef} role="img" aria-label={rangeLabel} aria-describedby={hint ? hintId : undefined} tabIndex={0} onKeyDown={onKey} className="chart-surface" style={surface}>
           <PricePanel model={model} tz={tz} interval={interval} view={view} point={point} width={width} height={PRICE_H} gutter={gutter} />
           {!latest ? (
             // 지난 봉을 보는 중이면 가격 칸 오른쪽 아래에 — 누르면 최신 봉으로

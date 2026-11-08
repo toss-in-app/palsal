@@ -59,7 +59,8 @@ export function TabBar({ active, onSelect }: TabBarProps) {
     >
       {ITEMS.map((item) => {
         const on = item.name === active;
-        const color = on ? colors.grey900 : colors.grey400;
+        // 안 고른 탭도 글자 대비 4.5:1(grey600) — 예전 grey400 은 2.0:1 이라 11px 글자가 거의 안 읽혔어요. 고른 탭은 색 + 굵기 + 선 굵기로
+        const color = on ? colors.grey900 : colors.grey600;
         return (
           <button
             key={item.name}
@@ -79,11 +80,11 @@ export function TabBar({ active, onSelect }: TabBarProps) {
               color,
               font: 'inherit',
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: on ? 700 : 500,
               cursor: 'pointer',
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={on ? 2.4 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               {item.icon}
             </svg>
             <span>{item.label}</span>
