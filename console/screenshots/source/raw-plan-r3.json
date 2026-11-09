@@ -1,0 +1,99 @@
+{
+ "base": "http://localhost:5191/",
+ "out": "<저장할 폴더>/raw",
+ "viewport": {
+  "width": 390,
+  "height": 844
+ },
+ "storage": {
+  "palsal.watch.v1": {
+   "version": 1,
+   "items": [
+    {
+     "id": "005930.KS|1d",
+     "symbol": "005930.KS",
+     "interval": "1d",
+     "addedAt": 1
+    },
+    {
+     "id": "000660.KS|1d",
+     "symbol": "000660.KS",
+     "interval": "1d",
+     "addedAt": 2
+    },
+    {
+     "id": "QQQ|1d",
+     "symbol": "QQQ",
+     "interval": "1d",
+     "addedAt": 3
+    },
+    {
+     "id": "SPY|1d",
+     "symbol": "SPY",
+     "interval": "1d",
+     "addedAt": 4
+    },
+    {
+     "id": "NVDA|1d",
+     "symbol": "NVDA",
+     "interval": "1d",
+     "addedAt": 5
+    },
+    {
+     "id": "BTC-USD|1d",
+     "symbol": "BTC-USD",
+     "interval": "1d",
+     "addedAt": 7
+    }
+   ]
+  },
+  "palsal.settings.v1": {
+   "version": 1,
+   "filter": "all",
+   "autoRefresh": true,
+   "firstOpenAt": 1762300000000,
+   "notification": {
+    "promptDismissedAt": null,
+    "lastResult": null
+   },
+   "chartUsedAt": 1762300000000
+  }
+ },
+ "steps": [
+  {
+   "go": "#/stock/005930.KS/1d"
+  },
+  {
+   "wait": 6000
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "wait": 300
+  },
+  {
+   "eval": "(document.body.style.paddingBottom='400px', true)"
+  },
+  {
+   "eval": "(()=>{const b=document.querySelector('button[aria-label=\"RSI 14 뜻 보기\"]'); if(!b) return 'none'; window.scrollTo(0, b.getBoundingClientRect().top + window.scrollY - 20); return Math.round(b.getBoundingClientRect().top)+' / scrollY '+Math.round(window.scrollY)+' / docH '+document.documentElement.scrollHeight})()",
+   "as": "1차"
+  },
+  {
+   "wait": 800
+  },
+  {
+   "eval": "(()=>{const b=document.querySelector('button[aria-label=\"RSI 14 뜻 보기\"]'); if(!b) return 'none'; window.scrollTo(0, b.getBoundingClientRect().top + window.scrollY - 20); return Math.round(b.getBoundingClientRect().top)+' / scrollY '+Math.round(window.scrollY)+' / docH '+document.documentElement.scrollHeight})()",
+   "as": "2차"
+  },
+  {
+   "wait": 500
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "shot": "r3-stock-news"
+  }
+ ]
+}

@@ -1,0 +1,177 @@
+{
+ "base": "http://localhost:5191/",
+ "out": "<저장할 폴더>/raw",
+ "viewport": {
+  "width": 390,
+  "height": 844
+ },
+ "storage": {
+  "palsal.watch.v1": {
+   "version": 1,
+   "items": [
+    {
+     "id": "005930.KS|1d",
+     "symbol": "005930.KS",
+     "interval": "1d",
+     "addedAt": 1
+    },
+    {
+     "id": "000660.KS|1d",
+     "symbol": "000660.KS",
+     "interval": "1d",
+     "addedAt": 2
+    },
+    {
+     "id": "QQQ|1d",
+     "symbol": "QQQ",
+     "interval": "1d",
+     "addedAt": 3
+    },
+    {
+     "id": "SPY|1d",
+     "symbol": "SPY",
+     "interval": "1d",
+     "addedAt": 4
+    },
+    {
+     "id": "NVDA|1d",
+     "symbol": "NVDA",
+     "interval": "1d",
+     "addedAt": 5
+    },
+    {
+     "id": "BTC-USD|1d",
+     "symbol": "BTC-USD",
+     "interval": "1d",
+     "addedAt": 7
+    }
+   ]
+  },
+  "palsal.settings.v1": {
+   "version": 1,
+   "filter": "all",
+   "autoRefresh": true,
+   "firstOpenAt": 1762300000000,
+   "notification": {
+    "promptDismissedAt": null,
+    "lastResult": null
+   },
+   "chartUsedAt": 1762300000000
+  }
+ },
+ "steps": [
+  {
+   "go": "#/"
+  },
+  {
+   "wait": 5500
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "wait": 300
+  },
+  {
+   "shot": "r1-home"
+  },
+  {
+   "go": "#/stock/005930.KS/1d"
+  },
+  {
+   "wait": 5000
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "wait": 300
+  },
+  {
+   "touch": {
+    "selector": ".chart-surface"
+   },
+   "gesture": "hold",
+   "ms": 700,
+   "dx": -70,
+   "holdShot": "r2-stock-hold"
+  },
+  {
+   "wait": 600
+  },
+  {
+   "eval": "(()=>{const h=[...document.querySelectorAll('section')].find(s=>(s.textContent||'').startsWith('이 종목 소식')); if(!h) return false; window.scrollTo(0, h.getBoundingClientRect().top + window.scrollY - 230); return true})()",
+   "as": "소식으로"
+  },
+  {
+   "wait": 500
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "shot": "r3-stock-news"
+  },
+  {
+   "go": "#/market"
+  },
+  {
+   "wait": 5000
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "wait": 300
+  },
+  {
+   "shot": "r4-market"
+  },
+  {
+   "eval": "(()=>{const s=document.querySelector('section[aria-label=\"지금 RSI 30 아래인 큰 종목\"]'); window.scrollTo(0, s.getBoundingClientRect().top + window.scrollY - 16); return true})()",
+   "as": "30 아래로"
+  },
+  {
+   "wait": 500
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "shot": "r5-market-low"
+  },
+  {
+   "go": "#/add"
+  },
+  {
+   "wait": 1800
+  },
+  {
+   "type": {
+    "label": "담을 종목 찾기",
+    "value": "ㅅㅅ"
+   }
+  },
+  {
+   "wait": 2200
+  },
+  {
+   "click": "삼성바이오로직스"
+  },
+  {
+   "click": "삼성물산"
+  },
+  {
+   "eval": "(document.activeElement && document.activeElement.blur(), window.scrollTo(0,0), true)"
+  },
+  {
+   "wait": 400
+  },
+  {
+   "eval": "(()=>{document.querySelectorAll('[data-testid=ad-banner]').forEach(e=>e.style.display='none');[...document.querySelectorAll('button,div,span,a')].filter(e=>e.children.length<=1&&(e.textContent||'').trim()==='AIT').forEach(e=>{let p=e;for(let i=0;i<4&&p;i++){if(getComputedStyle(p).position==='fixed'){p.style.display='none';break;}p=p.parentElement;}e.style.display='none';});return true})()"
+  },
+  {
+   "shot": "r6-add"
+  }
+ ]
+}
