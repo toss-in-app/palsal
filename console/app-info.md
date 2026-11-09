@@ -36,6 +36,7 @@
 | 앱 검색 키워드 10 | RSI · RSI 알림 · 주식 RSI · 코인 RSI · 보조지표 · 이동평균 · 공포탐욕지수 · 관심종목 · 주식 차트 · 시가총액 |
 | 주요 기능 3 | 주식 RSI 보기 / My Stock Chart / 홈 화면 · 공포탐욕지수 보기 / Fear And Greed / intoss://palsal/market · RSI 알림 받기 / Daily Alert / intoss://palsal/settings |
 | 안 채운 것 | 다크모드 로고(선택) · 가로 썸네일(선택) · 확약 5개 체크 · 검토 요청 |
+| 11단계 때 고칠 것 | (2026-11-09 VIX 추가 뒤) 상세 설명 시장 탭 문장에 VIX 넣기 — "…지금 RSI가 30 아래인 종목과 공포탐욕지수, VIX를 보고 바로 담을 수 있어요." · 출시 노트 [시장]에 VIX · 스크린샷 3번(시장)은 그대로 써도 됨 |
 
 ## 9단계 (2026-11-05 Claude 초안)
 - **이용약관** `https://toss-in-app.github.io/palsal/terms/` · **개인정보처리방침** `https://toss-in-app.github.io/palsal/privacy/` — 둘 다 라이브(8단계 배포, 원문은 `static/terms/index.html` · `static/privacy/index.html`, 정리는 `console/policies/README.md`).

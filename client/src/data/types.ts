@@ -136,6 +136,13 @@ export interface MarketRow {
   changePct: number | null;
 }
 
+/** VIX 변동성지수(v1.18) — 지금 값 · 전일 대비 % · 최근 일봉 종가(오래된 → 최근, 마지막 = value) */
+export interface Vix {
+  value: number;
+  changePct: number | null;
+  closes: number[];
+}
+
 export interface MarketPayload {
   schema: 1;
   asOf: string;
@@ -147,6 +154,8 @@ export interface MarketPayload {
   universe: { kr: MarketRow[]; us: MarketRow[]; crypto?: MarketRow[] };
   /** universe 의 한국·미국 중 일봉 RSI ≤ 30, RSI 낮은 순(코인은 없음 — 화면은 universe 줄로 직접 골라요) */
   low: string[];
+  /** VIX(v1.18). 서버가 아직 안 넣었거나 모양이 다르면 없음 — 시장 탭은 VIX 카드를 숨겨요 */
+  vix?: Vix;
 }
 
 const FG_LABELS = ['극단적 공포', '공포', '중립', '탐욕', '극단적 탐욕'];
@@ -162,7 +171,12 @@ function isRow(v: unknown): v is MarketRow {
   return typeof v.symbol === 'string' && SYMBOL_RE.test(v.symbol) && Number.isInteger(v.rank) && opt(v.rsi) && (v.close === null || pos(v.close)) && opt(v.changePct);
 }
 
-/** 모양이 맞으면 그대로, 아니면 null(화면은 '시장 정보를 불러오지 못했어요') */
+function isVix(v: unknown): v is Vix {
+  if (!isObj(v)) return false;
+  return pos(v.value) && (v.changePct === null || num(v.changePct)) && Array.isArray(v.closes) && v.closes.length >= 2 && v.closes.length <= 130 && v.closes.every(pos);
+}
+
+/** 모양이 맞으면 그대로, 아니면 null(화면은 '시장 정보를 불러오지 못했어요'). 덧붙인 칸(vix)만 이상하면 그 칸만 빼요 */
 export function asMarketPayload(v: unknown): MarketPayload | null {
   if (!isObj(v) || v.schema !== 1 || !time(v.asOf) || !time(v.computedAt) || typeof v.stale !== 'boolean' || typeof v.universeVersion !== 'string') return null;
   const fg = v.fearGreed;
@@ -171,5 +185,10 @@ export function asMarketPayload(v: unknown): MarketPayload | null {
   if (!isObj(uni) || !Array.isArray(uni.kr) || !Array.isArray(uni.us) || !uni.kr.every(isRow) || !uni.us.every(isRow)) return null;
   if (uni.crypto !== undefined && !(Array.isArray(uni.crypto) && uni.crypto.every(isRow))) return null;
   if (!Array.isArray(v.low) || !v.low.every((s) => typeof s === 'string' && SYMBOL_RE.test(s))) return null;
+  if (v.vix !== undefined && !isVix(v.vix)) {
+    const rest = { ...v };
+    delete rest.vix;
+    return rest as unknown as MarketPayload;
+  }
   return v as unknown as MarketPayload;
 }

@@ -211,6 +211,14 @@ function makeMarket(now: number): MarketPayload {
   };
   const day = new Date(now).toISOString().slice(0, 10);
   const crypto = 15 + (hash(day) % 70);
+  // VIX(v1.18) 예시: 13~30 사이를 오가다 한 번 튀는 반년치 종가
+  const seed = hash(`vix${day}`) % 40;
+  const vixCloses = Array.from({ length: 130 }, (_, i) => {
+    const v = 17 + 3.5 * Math.sin((i + seed) / 9) + 2 * Math.sin((i + seed) / 3.3) + (i >= 84 && i <= 92 ? 9 - Math.abs(i - 88) * 1.5 : 0);
+    return Math.round(Math.max(11, v) * 100) / 100;
+  });
+  const vixNow = vixCloses[vixCloses.length - 1];
+  const vixPrev = vixCloses[vixCloses.length - 2];
   return {
     schema: 1,
     asOf: new Date(Math.floor(now / 300_000) * 300_000).toISOString(),
@@ -224,6 +232,7 @@ function makeMarket(now: number): MarketPayload {
     },
     universe: { kr, us, crypto: coins },
     low,
+    vix: { value: vixNow, changePct: Math.round((vixNow / vixPrev - 1) * 10_000) / 100, closes: vixCloses },
   };
 }
 

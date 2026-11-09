@@ -25,11 +25,13 @@ describe('SettingsScreen', () => {
 
   it('도움말은 누른 것만 펼쳐요', () => {
     renderSettings();
-    expect(screen.queryByText(bundledContent.fearGreed.body)).not.toBeInTheDocument();
+    // 본문의 줄바꿈(VIX 문단, v1.18)은 화면 글에서 빈칸 하나로 읽혀요
+    const fgBody = bundledContent.fearGreed.body.replace(/\s+/g, ' ');
+    expect(screen.queryByText(fgBody)).not.toBeInTheDocument();
     fireEvent.click(screen.getByText(bundledContent.fearGreed.title));
-    expect(screen.getByText(bundledContent.fearGreed.body)).toBeInTheDocument();
+    expect(screen.getByText(fgBody)).toBeInTheDocument();
     fireEvent.click(screen.getByText('자주 묻는 질문'));
-    expect(screen.queryByText(bundledContent.fearGreed.body)).not.toBeInTheDocument();
+    expect(screen.queryByText(fgBody)).not.toBeInTheDocument();
     expect(screen.getByText(bundledContent.faq[0].q)).toBeInTheDocument();
     fireEvent.click(screen.getByText('RSI 구간과 표시 읽는 법'));
     expect(screen.getByText(bundledContent.zones[0].body)).toBeInTheDocument();

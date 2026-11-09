@@ -68,7 +68,7 @@ function HelpRow({ open, title, onToggle, children }: { open: boolean; title: st
   );
 }
 
-const para = { display: 'block', lineHeight: 1.6 } as const;
+const para = { display: 'block', lineHeight: 1.6, whiteSpace: 'pre-line' } as const;
 
 /** 설정(탭 3, 흐름 문서 'settings'): (알림) · 새로고침 · 도움말 3 · 이용약관·처리방침 · 시세 출처 · 면책 · 버전 */
 export function SettingsScreen({ content, autoRefresh, onAutoRefresh, onOpenTerms, onOpenPrivacy, notification }: SettingsScreenProps) {

@@ -108,3 +108,35 @@ describe('MarketScreen', () => {
     expect(h.onRetry).toHaveBeenCalled();
   });
 });
+
+describe('VIX 카드(v1.18)', () => {
+  const closes = Array.from({ length: 130 }, (_, i) => 15 + (i % 10));
+  const withVix: MarketPayload = { ...payload, vix: { value: 31.2, changePct: 8.25, closes: [...closes.slice(0, -1), 31.2] } };
+
+  it('미국 공포탐욕 다음에 지금 값 · 구간 · 전일 대비 % · 기준 한 줄', () => {
+    renderMarket({ status: 'ready', data: withVix, fetchedAt: 1 });
+    const strip = screen.getByRole('region', { name: '공포탐욕지수와 VIX' });
+    const titles = within(strip)
+      .getAllByText(/공포탐욕$|^VIX 변동성지수$/)
+      .map((el) => el.textContent);
+    expect(titles).toEqual(['한국 공포탐욕', '미국 공포탐욕', 'VIX 변동성지수', '코인 공포탐욕']);
+    const vixCard = within(strip).getByRole('group', { name: 'VIX 변동성지수' });
+    expect(within(vixCard).getByText('31.20')).toBeInTheDocument();
+    expect(within(vixCard).getByText('공포')).toBeInTheDocument();
+    expect(within(vixCard).getByText('+8.25%')).toBeInTheDocument();
+    expect(within(vixCard).getByText('20 아래 평온 · 30 넘으면 공포')).toBeInTheDocument();
+  });
+
+  it('(i)를 누르면 구간별 읽는 법 시트', () => {
+    renderMarket({ status: 'ready', data: withVix, fetchedAt: 1 });
+    fireEvent.click(screen.getByRole('button', { name: 'VIX 읽는 법' }));
+    expect(screen.getByText(/30~40 · 공포가 큰 편이에요/)).toBeInTheDocument();
+    expect(screen.getByText(/오를지 내릴지는 알려 주지 않아요/)).toBeInTheDocument();
+  });
+
+  it('서버가 아직 VIX 를 안 넣었으면 카드 없이 공포탐욕 3장', () => {
+    renderMarket({ status: 'ready', data: payload, fetchedAt: 1 });
+    expect(screen.getByRole('region', { name: '공포탐욕지수' })).toBeInTheDocument();
+    expect(screen.queryByText('VIX 변동성지수')).not.toBeInTheDocument();
+  });
+});

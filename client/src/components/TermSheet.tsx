@@ -51,7 +51,8 @@ export function TermSheet({ glossary, term, onChange }: TermSheetProps) {
           <Text display="block" typography="t4" fontWeight="bold" color={colors.grey900}>
             {g.title}
           </Text>
-          <Text display="block" typography="t6" color={colors.grey800} style={{ marginTop: 10, lineHeight: 1.6 }}>
+          {/* 줄바꿈(\n)은 그대로 — VIX 구간처럼 줄마다 나눈 설명이 있어요 */}
+          <Text display="block" typography="t6" color={colors.grey800} style={{ marginTop: 10, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
             {g.body}
           </Text>
           {g.caution ? (

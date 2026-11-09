@@ -1,7 +1,7 @@
 {
  "kind": "symbols",
  "schema": 1,
- "contentVersion": "2026-11-06.1",
+ "contentVersion": "2026-11-09.1",
  "minClientVersion": "0.0.1",
  "items": [
   {
@@ -35993,6 +35993,16 @@
   {
    "s": "^IXIC",
    "n": "나스닥 종합지수",
+   "m": "US"
+  },
+  {
+   "s": "^VIX",
+   "n": "VIX 변동성지수",
+   "a": [
+    "VIX",
+    "공포지수",
+    "변동성지수"
+   ],
    "m": "US"
   },
   {
