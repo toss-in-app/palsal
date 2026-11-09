@@ -92,7 +92,7 @@ function FearGreedCard({ title, v, onInfo }: { title: string; v: FearGreed; onIn
   );
 }
 
-const VIX_SPARK_H = 56;
+const VIX_SPARK_H = 64;
 /** 늘 보이게 긋는 기준선(이 위가 공포 쪽) */
 const VIX_GUIDES = [20, 30];
 
@@ -128,24 +128,30 @@ function VixSpark({ closes }: { closes: number[] }) {
   );
 }
 
-/** VIX 카드(v1.18, 사용자 2026-11-09 "공포탐욕지수 칸에 VIX도 + 활용법(몇 넘으면 어떤지)") — 공포탐욕 카드와 같은 높이 */
-function VixCard({ vix, onInfo }: { vix: Vix; onInfo: () => void }) {
+/**
+ * VIX 칸(v1.18) — 공포탐욕 카드 줄 아래, 'RSI 30 아래' 목록 위에 따로(시험자 필귀 2026-11-09 "공탐지에 섞여 있는 게 애매, 그 라인 그대로 두고 VIX 는 한 칸 밑으로").
+ * 다른 칸(30 아래 · 시총 순위)과 같은 꼴: 제목 + (i) · 기준 한 줄 · 지금 값 · 구간 · 전일 대비 % · 최근 반년 선(20 · 30 기준선).
+ */
+function VixSection({ vix, onInfo }: { vix: Vix; onInfo: () => void }) {
   const zone = vixZone(vix.value);
   return (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <Text typography="t6" fontWeight="bold" color={colors.grey900}>
+    <section aria-label="VIX 변동성지수" style={{ ...card, margin: '12px 20px 0', padding: '20px 20px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Text typography="t5" fontWeight="bold" color={colors.grey900}>
           VIX 변동성지수
         </Text>
         <InfoButton label="VIX 읽는 법" onClick={onInfo} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+      <Text display="block" typography="t7" color={colors.grey600} style={{ marginTop: 2 }}>
+        {VIX_HINT}
+      </Text>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
         <span style={{ fontSize: 34, fontWeight: 700, lineHeight: '40px', color: colors.grey900, fontVariantNumeric: 'tabular-nums' }}>{vix.value.toFixed(2)}</span>
         <span>
           <Text display="block" typography="t6" fontWeight="bold" color={vixInk(zone)}>
             {VIX_LABEL[zone]}
           </Text>
-          {/* 등락은 앱의 다른 가격처럼 퍼센트만(전일 대비) — 320 화면에서도 한 줄 */}
+          {/* 등락은 앱의 다른 가격처럼 퍼센트만(전일 대비) */}
           {vix.changePct !== null ? (
             <Text display="block" typography="t7" fontWeight="medium" color={changeColor(vix.changePct)} style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {formatPct(vix.changePct)}
@@ -153,24 +159,22 @@ function VixCard({ vix, onInfo }: { vix: Vix; onInfo: () => void }) {
           ) : null}
         </span>
       </div>
-      <div style={{ marginTop: 8 }}>
+      <div style={{ marginTop: 10 }}>
         <VixSpark closes={vix.closes} />
       </div>
-      <Text display="block" typography="t7" color={colors.grey600} style={{ textAlign: 'center', marginTop: 6 }}>
-        {VIX_HINT}
+      <Text display="block" typography="st12" color={colors.grey600} style={{ marginTop: 6 }}>
+        최근 6개월
       </Text>
-    </>
+    </section>
   );
 }
 
-function FearGreedStrip({ fg, vix, onInfo, onVixInfo }: { fg: MarketPayload['fearGreed']; vix: Vix | undefined; onInfo: () => void; onVixInfo: () => void }) {
+function FearGreedStrip({ fg, onInfo }: { fg: MarketPayload['fearGreed']; onInfo: () => void }) {
   const strip = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
-  // VIX 는 미국 공포탐욕 바로 뒤(둘 다 미국 시장). 서버가 아직 안 넣었으면 카드 없이 3장
   const items: { key: string; label: string; node: ReactNode }[] = [
     { key: 'kr', label: '한국 공포탐욕', node: <FearGreedCard title="한국 공포탐욕" v={fg.kr} onInfo={onInfo} /> },
     { key: 'us', label: '미국 공포탐욕', node: <FearGreedCard title="미국 공포탐욕" v={fg.us} onInfo={onInfo} /> },
-    ...(vix ? [{ key: 'vix', label: 'VIX 변동성지수', node: <VixCard vix={vix} onInfo={onVixInfo} /> }] : []),
     { key: 'crypto', label: '코인 공포탐욕', node: <FearGreedCard title="코인 공포탐욕" v={fg.crypto} onInfo={onInfo} /> },
   ];
   const onScroll = () => {
@@ -179,7 +183,7 @@ function FearGreedStrip({ fg, vix, onInfo, onVixInfo }: { fg: MarketPayload['fea
     if (el && first) setPage(Math.round(el.scrollLeft / (first.offsetWidth + 12)));
   };
   return (
-    <section aria-label={vix ? '공포탐욕지수와 VIX' : '공포탐욕지수'}>
+    <section aria-label="공포탐욕지수">
       <div ref={strip} onScroll={onScroll} style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '4px 20px 0', scrollPadding: '0 20px', scrollbarWidth: 'none' }}>
         {/* 다음 카드가 24px 보이게(전엔 8px 라 옆으로 넘길 수 있다는 걸 점 3개로만 알 수 있었어요) */}
         {items.map((it) => (
@@ -209,7 +213,7 @@ function RsiTrack({ rsi }: { rsi: number }) {
   );
 }
 
-/** 시장(탭 2, 흐름 문서 'market'): 공포탐욕 3 + VIX · 지금 RSI 30 아래인 큰 종목 · 시가총액 순위 */
+/** 시장(탭 2, 흐름 문서 'market'): 공포탐욕 3 · VIX · 지금 RSI 30 아래인 큰 종목 · 시가총액 순위 */
 export function MarketScreen({ today, market, universe, watched, glossary, onRetry, onOpen, onAdd }: MarketScreenProps) {
   const [rankTab, setRankTab] = useState<'kr' | 'us'>('kr');
   const [lowTab, setLowTab] = useState<LowTab>('all');
@@ -271,7 +275,10 @@ export function MarketScreen({ today, market, universe, watched, glossary, onRet
         </div>
       ) : (
         <>
-          <FearGreedStrip fg={data.fearGreed} vix={data.vix} onInfo={() => setTerm('fear-greed')} onVixInfo={() => setTerm('vix')} />
+          <FearGreedStrip fg={data.fearGreed} onInfo={() => setTerm('fear-greed')} />
+
+          {/* VIX: 공포탐욕 줄 아래 따로(서버가 아직 안 넣었으면 없음) */}
+          {data.vix ? <VixSection vix={data.vix} onInfo={() => setTerm('vix')} /> : null}
 
           <section aria-label="지금 RSI 30 아래인 큰 종목" style={{ ...card, margin: '12px 20px 0', padding: '20px 0 8px' }}>
             <div style={{ padding: '0 20px 8px' }}>
